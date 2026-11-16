@@ -25,7 +25,7 @@ test('automatic playback, host pause, and backward navigation preserve hold timi
   await expect(shell).toHaveAttribute('data-current', '1.jpg')
   await page.clock.fastForward(1)
   await expect(shell).toHaveAttribute('data-current', '2.jpg')
-  await page.getByRole('button', { name: 'Previous image' }).click()
+  await page.locator('.preview-tools').getByRole('button', { name: 'Previous image' }).click()
   await expect(shell).toHaveAttribute('data-current', '1.jpg')
   await page.clock.fastForward(999)
   await expect(shell).toHaveAttribute('data-current', '1.jpg')

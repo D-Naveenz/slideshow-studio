@@ -17,7 +17,7 @@ async function boot(page, backend, clock = false) {
   await page.addInitScript(() => {
     let listener
     Object.defineProperty(window, 'wallpaperPropertyListener', { configurable: true, get: () => listener, set(value) {
-      listener = value; value.applyUserProperties({ source: { value: 'image' }, imagefile: { value: '' } })
+      listener = value; value.applyUserProperties({ source: { value: 'image' }, imagefile: { value: '' }, controls: { value: false } })
     } })
     window.__rafRequests = 0
     const raf = window.requestAnimationFrame.bind(window)

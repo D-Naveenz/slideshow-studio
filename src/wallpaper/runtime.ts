@@ -1,8 +1,10 @@
 import type { WallpaperBridge, WallpaperEvent } from './bridge.d.ts'
 import { ImageCatalogue } from './catalogue.ts'
 import type { ImageEntry, ImportKind, ObjectUrls } from './catalogue.ts'
-import { defaults, settingsPatch } from './settings.ts'
+import { settingsPatch } from './settings.ts'
 import type { Settings } from './settings.ts'
+import { browserStorage, SettingsPreferences } from './preferences.ts'
+import type { OverlayKey, OverlaySettings, PreferenceStorage } from './preferences.ts'
 
 export interface WallpaperSnapshot {
   readonly settings: Readonly<Settings>
@@ -10,6 +12,7 @@ export interface WallpaperSnapshot {
   readonly fps: number
   readonly paused: boolean
   readonly preview: boolean
+  readonly overrides: readonly OverlayKey[]
 }
 
 /** Host and preview inputs share a store; decoding and playback are deliberately separate. */
@@ -19,15 +22,21 @@ export class WallpaperRuntime {
   private listeners = new Set<() => void>()
   private disconnect?: () => void
   private disposed = false
-  constructor(preview: boolean, urls: ObjectUrls = URL) {
+  private preferences: SettingsPreferences
+  private connecting = false
+  private receivedHostSettings = false
+  constructor(preview: boolean, urls: ObjectUrls = URL, storage: PreferenceStorage | undefined = browserStorage()) {
+    this.preferences = new SettingsPreferences(storage)
     this.catalogue = new ImageCatalogue(urls)
-    this.snapshot = Object.freeze({ settings: defaults, images: this.catalogue.images('samples'), fps: 30, paused: false, preview })
+    this.snapshot = Object.freeze({ settings: this.preferences.settings, overrides: this.preferences.keys, images: this.catalogue.images('samples'), fps: 30, paused: false, preview })
   }
   getSnapshot = () => this.snapshot
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
   connect(bridge: WallpaperBridge) {
     if (this.disposed || this.disconnect) throw new Error('Runtime is already connected or disposed')
-    this.disconnect = bridge.connect(this.receive)
+    this.connecting = true
+    try { this.disconnect = bridge.connect(this.receive) }
+    finally { this.connecting = false }
   }
   private publish(next: Partial<WallpaperSnapshot> = {}) {
     this.snapshot = Object.freeze({ ...this.snapshot, ...next, images: Object.freeze([...this.catalogue.images((next.settings || this.snapshot.settings).source)]) })
@@ -40,7 +49,9 @@ export class WallpaperRuntime {
       if (!Object.keys(patch).length) return
       if (patch.imagefile !== undefined) this.catalogue.setSingle(patch.imagefile)
       if (patch.imagedirectory !== undefined) this.catalogue.setDirectory(patch.imagedirectory)
-      this.publish({ settings: Object.freeze({ ...this.snapshot.settings, ...patch }) })
+      this.preferences.applyHost(patch, this.connecting || !this.receivedHostSettings)
+      this.receivedHostSettings = true
+      this.publishSettings()
     } else if (event.type === 'general-properties') {
       const fps: unknown = event.properties?.fps
       // Zero means uncapped; missing/invalid FPS updates preserve the last valid value.
@@ -56,7 +67,17 @@ export class WallpaperRuntime {
   importFiles(kind: ImportKind, files: readonly File[]) {
     if (!this.snapshot.preview || this.disposed) return
     this.catalogue.importFiles(kind, files)
-    this.publish({ settings: Object.freeze({ ...this.snapshot.settings, source: kind }) })
+    this.preferences.applyHost({ source: kind }, true)
+    this.publishSettings()
+  }
+  private publishSettings() { this.publish({ settings: this.preferences.settings, overrides: this.preferences.keys }) }
+  setOverrides = (values: Partial<OverlaySettings>) => {
+    if (this.disposed) return
+    this.preferences.update(values); this.publishSettings()
+  }
+  resetOverrides = () => {
+    if (this.disposed) return
+    this.preferences.reset(); this.publishSettings()
   }
   dispose() {
     this.disposed = true; this.disconnect?.(); this.listeners.clear(); this.catalogue.dispose()

@@ -38,7 +38,7 @@ class FakeScheduler implements Scheduler {
 class Source {
   snapshot: WallpaperSnapshot
   listeners = new Set<() => void>()
-  constructor(images: ImageEntry[]) { this.snapshot = { settings: { ...defaults, holdseconds: 1 }, images, fps: 30, paused: false, preview: true } }
+  constructor(images: ImageEntry[]) { this.snapshot = { settings: { ...defaults, holdseconds: 1 }, overrides: [], images, fps: 30, paused: false, preview: true } }
   getSnapshot = () => this.snapshot
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
   emit(patch: Partial<WallpaperSnapshot>) { this.snapshot = { ...this.snapshot, ...patch }; this.listeners.forEach(listener => listener()) }

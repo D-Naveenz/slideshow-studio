@@ -2,7 +2,7 @@
 
 A wallpaper slideshow framework for Wallpaper Engine, built with Vite, React, and TypeScript. The target is a self-contained HTML/CSS/JavaScript wallpaper that fills the viewport, cycles local images, and runs offline without Node.
 
-The current build plays a viewport-filling slideshow with natural ordering, shuffle, bounded image preparation, and fade, slide, or instant transitions. PixiJS renders Fill or Fit images with solid or blurred backgrounds; Canvas2D provides a fallback. Browser preview supports local image/folder selection and navigation. Four sample images are included under `public/wallpapers/`. The desktop toolbar/settings overlay follows in the next batch. Offline browser checks and a limited native Wallpaper Engine rendering preview have passed; full host integration verification remains pending.
+The current build plays a viewport-filling slideshow with natural ordering, shuffle, bounded image preparation, and fade, slide, or instant transitions. PixiJS renders Fill or Fit images with solid or blurred backgrounds; Canvas2D provides a fallback. A navigation toolbar and accessible settings dialog provide playback and appearance controls, with saved local overrides. Browser preview supports local image/folder selection. Four sample images are included under `public/wallpapers/`. Offline browser checks and a limited native Wallpaper Engine rendering preview have passed; full host integration verification remains pending.
 
 ## Development
 
@@ -29,7 +29,26 @@ The build outputs `index.html`, `wallpaper.js`, `wallpaper.css`, `wallpaper-brid
 
 For a manual Wallpaper Engine check, build first, then drag **`dist/index.html`** onto **Create Wallpaper** in the editor. Import only the built `dist/` folder, never the repository root or `node_modules`. Wallpaper Engine copies imported files into its project directory; rebuilding this repository does not update that copy automatically.
 
-Project metadata lives in the root `project.json`. The build generates `dist/project.json` properties from the same definitions used for settings validation, so property keys, defaults, and slider bounds stay consistent. Source, timing, transitions, shuffle, Fit/Fill, backgrounds, and host pause/FPS updates drive playback. End-user toolbar/settings controls follow in the next batch.
+Project metadata lives in the root `project.json`. The build generates `dist/project.json` properties from the same definitions used for settings validation, so property keys, defaults, and slider bounds stay consistent. Source, timing, transitions, shuffle, Fit/Fill, backgrounds, and host pause/FPS updates drive playback.
+
+## Wallpaper controls
+
+Move the pointer to reveal the bottom toolbar. It offers previous, play/pause, next, and settings, and hides after three seconds unless hovered, focused, or the settings dialog is open. Keyboard focus also reveals hidden controls. Unavailable navigation buttons are disabled; system pause remains effective even if you clear your own pause.
+
+The settings dialog controls hold time, shuffle, transition/duration, sizing, and Fit backgrounds. It supports Tab navigation, Escape dismissal, focus return, and scrolling on small screens. [Radix Dialog](https://www.radix-ui.com/primitives/docs/components/dialog) supplies focus management and modal behavior; [Lucide React](https://lucide.dev/guide/react/) supplies bundled SVG icons. Image/folder selection and the master **Enable navigation and settings overlay** switch stay in Wallpaper Engine's properties panel. Turning that switch off also disables wallpaper shortcuts.
+
+| Shortcut | Action |
+| --- | --- |
+| Left / Right | Previous / next image |
+| Space | Toggle your playback pause |
+| S | Open settings |
+| Escape | Close settings |
+
+Shortcuts work only where the host forwards keyboard input. Editing fields and activating buttons retain their native keyboard behavior. Browser tests verify these interactions; native desktop input forwarding remains for the final host verification batch. Use the clickable controls and native properties panel when keyboard events are unavailable.
+
+Overlay playback/appearance changes are saved in versioned local storage. Startup resolves defaults → initial host settings → saved overrides. All buffered startup settings, or the first later host settings event, preserve saved overrides. Subsequent host values that change clear matching overrides; unrelated or repeated values preserve them. **Reset to Wallpaper Engine settings** clears all local overrides and restores the latest host values. Image paths, folder selections, the master switch, and pause state are not saved by the overlay.
+
+Blocked storage, full storage, and corrupt preferences leave session controls usable. Persistence depends on the browser origin/profile; moving the package or using another host can change the available saved settings. Reload persistence is verified in Edge; Wallpaper Engine storage behavior remains for final integration testing.
 
 ## Image source preview
 
@@ -60,9 +79,9 @@ pnpm test:package
 pnpm test:browser
 ```
 
-- `pnpm test` runs bridge, settings, URL, catalogue, adapter, ordering, clock, resource-budget, and playback-race tests with Node's built-in test runner and native TypeScript stripping. TypeScript tests are also checked by `pnpm build`.
+- `pnpm test` runs bridge, settings, URL, catalogue, adapter, ordering, clock, resource-budget, playback-race, and saved-override precedence/persistence tests with Node's built-in test runner and native TypeScript stripping. TypeScript tests are also checked by `pnpm build`.
 - `pnpm test:package` builds and checks project metadata, local asset references, classic script syntax, absence of runtime module/Node imports, license files, and intact sample images.
-- `pnpm test:browser` builds and opens packages directly through `file://` in offline Playwright contexts. It checks relocated packages, landscape/portrait/ultrawide windows, early events, imports, bounded loading, playback, failed-image recovery, oversized source preparation, resize, rendered transition/background pixels, idle frame scheduling, GPU texture eviction, and context loss/restoration. Both PixiJS and Canvas2D are exercised. It starts no server.
+- `pnpm test:browser` builds and opens packages directly through `file://` in offline Playwright contexts. It checks relocated packages, landscape/portrait/ultrawide windows, early events, imports, bounded loading, playback, failed-image recovery, oversized source preparation, resize, rendered transition/background pixels, idle frame scheduling, GPU texture eviction, and context loss/restoration. Overlay checks cover focus, shortcuts, auto-hide, disabled controls, settings precedence, reload persistence, and storage failures. Both PixiJS and Canvas2D are exercised. It starts no server.
 
 For browser tests, either install Playwright Chromium with `pnpm exec playwright install chromium`, or select an existing supported browser. For Microsoft Edge in PowerShell:
 

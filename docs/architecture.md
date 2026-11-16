@@ -2,7 +2,7 @@
 
 ## Current state and target
 
-The Vite migration and dependency updates are complete. The application plays a slideshow through a bounded preparation worker and PixiJS WebGL renderer, with Canvas2D fallback, fade/slide/instant transitions, Fit/Fill sizing, and solid/blurred backgrounds. Validated host settings and source catalogues drive playback. A development panel supports imports, playback controls, and mock host events. The end-user overlay remains planned for batch 6. See [implementation status](implementation-plan.md).
+The Vite migration and dependency updates are complete. The application plays a slideshow through a bounded preparation worker and PixiJS WebGL renderer, with Canvas2D fallback, fade/slide/instant transitions, Fit/Fill sizing, and solid/blurred backgrounds. Validated host settings and source catalogues drive playback. A React toolbar and accessible settings dialog provide end-user controls and persisted appearance/playback overrides. A separate development panel supports imports and mock host events. Final native integration and photographic stress measurements remain batch 7. See [implementation status](implementation-plan.md).
 
 Retain Vite, React, TypeScript, React Compiler, and Oxlint. Node runs development and build tools only. The final wallpaper package will contain `index.html`, local JavaScript/CSS/assets, sample images, and `project.json` in `dist/`. Use relative asset references and a classic JavaScript bundle to avoid runtime module imports. No external fonts, CDN dependencies, runtime server, or required network access.
 
@@ -20,11 +20,11 @@ The bridge connects to `WallpaperRuntime` before asynchronous renderer initializ
 
 `settings.ts` defines stable lowercase property keys, runtime types, defaults, slider bounds, options, and display conditions. `settingsPatch` accepts only known own properties, preserves missing values, rejects malformed types/options, clamps sliders, and converts host color channels to hex. `projectProperties` generates matching host definitions. The keys are `source`, `imagefile`, `imagedirectory`, `holdseconds`, `transition`, `transitionseconds`, `shuffle`, `fit`, `background`, `backgroundcolor`, `blur`, and `controls`.
 
-`WallpaperRuntime` exposes immutable cached snapshots and subscriptions for React through `useSyncExternalStore`. It consumes buffered/live events, retains the last valid FPS (initially 30; zero means uncapped), and stores host pause state. Property changes are incremental. The playback controller consumes source, timing, shuffle, pause, appearance, and FPS changes. Saved overrides follow in batch 6.
+`WallpaperRuntime` exposes immutable cached snapshots and subscriptions for React through `useSyncExternalStore`. It consumes buffered/live events, retains the last valid FPS (initially 30; zero means uncapped), and stores host pause state. Property changes are incremental. The playback controller consumes source, timing, shuffle, pause, appearance, and FPS changes. `SettingsPreferences` owns the latest host values and validated overlay overrides separately, so reset can restore current host settings.
 
 `ImageCatalogue` stores image IDs, names, URLs, and revisions only. It retains native directory references while another source is selected, updates revisions for modified files, and removes entries by canonical identity. Windows drive and UNC identities are case-insensitive; POSIX identities retain case. Raw paths encode literal URL-reserved characters; already encoded `file://` URLs retain their escaping. Relative paths and non-file URL schemes are rejected. When directory location properties are available, replacement retains entries already received for the new root and excludes old-root entries; `fetchall` change/removal callbacks also work without a directory location value.
 
-Browser imports own session object URLs and release them on replacement, clearing, disposal, or failed partial import. The catalogue never decodes images; the playback worker requests only the current and neighboring entries. The development preview is enabled by Vite dev mode or `?preview=1`; normal production hides it. Its source/timing/shuffle/FPS/pause mocks use the real global host callbacks. It is separate from the end-user settings overlay planned for batch 6.
+Browser imports own session object URLs and release them on replacement, clearing, disposal, or failed partial import. The catalogue never decodes images; the playback worker requests only the current and neighboring entries. The development preview is enabled by Vite dev mode or `?preview=1`; normal production hides it. Its host mocks use the real global callbacks. It is separate from the end-user settings overlay, which edits runtime overrides without pretending to be host input.
 
 ## Implemented playback boundary
 
@@ -87,11 +87,15 @@ Render only during transitions or invalidation. Animation uses the host FPS cap,
 | Blur strength | 24 screen pixels |
 | Navigation and settings overlay | Enabled |
 
-Expose playback and appearance settings through `project.json` and a dark, keyboard-accessible overlay. The toolbar offers previous, play/pause, next, and settings. Reveal it on pointer movement; hide after three seconds of inactivity unless hovered or focused. Keep the settings overlay usable while open.
+Playback and appearance settings are exposed through `project.json` and a dark, keyboard-accessible overlay. `WallpaperControls` provides previous, play/pause, next, and settings with named Lucide SVG icons. It reveals on pointer movement or keyboard focus and hides after three seconds unless hovered, focused, or the dialog is open. Hidden buttons stay in the tab order so keyboard focus can reveal them. The native controls property unmounts the toolbar/dialog and removes listeners/timers. Navigation is disabled while a move is pending or unavailable; empty sources also disable pause.
+
+`SettingsPanel` uses Radix Dialog for modal focus trapping, dismissal, and focus return. Native labeled inputs/selects retain their keyboard behavior. Its scrollable layout and sticky close/header keep it usable in small viewports. Neither component owns frame rendering; React receives meaningful runtime/playback snapshots only. Both dependencies are built into the local classic bundle; no runtime downloads or new service dependencies are introduced.
 
 Support Left/Right for navigation, Space for play/pause, S for settings, and Escape to dismiss, where Wallpaper Engine forwards input. Ignore playback shortcuts in form controls. Document input-forwarding requirements.
 
-Persist overlay overrides locally. Startup precedence is defaults → Wallpaper Engine values → saved overrides. Subsequent changed host properties clear corresponding overrides; provide a reset to host settings. Native image/folder selections are owned by Wallpaper Engine and are not saved as overlay file selections. Unavailable local storage must not prevent session operation.
+`SettingsPreferences` persists an allowlist of hold/transition/shuffle/fit/background/color/blur values under `slideshow-studio.preferences.v1`, with a versioned JSON envelope and shared validation. Startup precedence is defaults → Wallpaper Engine values → saved overrides. All events drained synchronously during bridge connection preserve overrides; the first valid later host event also counts as initial settings if none were buffered. Subsequent values that differ from the last host values clear corresponding overrides and update storage. Repeated or unrelated host values preserve them. Reset removes overrides and restores the latest host values.
+
+Native source/image/folder selection, the master controls switch, and pause state are never persisted by the overlay. Getter/write/removal failures and corrupt or unknown-version records leave session operation usable. Local storage scope depends on browser origin/profile; file-package moves and different hosts may expose different records. Native storage/input behavior remains to be verified in batch 7.
 
 ## Verification boundaries
 

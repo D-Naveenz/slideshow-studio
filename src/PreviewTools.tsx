@@ -22,7 +22,7 @@ export function PreviewTools({ runtime, snapshot, playback, playing }: {
       <header>
         <p className="eyebrow">Development preview</p>
         <h2>Image sources</h2>
-        <p>Preview slideshow transitions, sizing, and backgrounds. The desktop toolbar arrives in the next batch.</p>
+        <p>Preview local sources and host events. Move the pointer to reveal the slideshow toolbar.</p>
       </header>
       <div className="preview-field">
         <label htmlFor="preview-source">Image source</label>
