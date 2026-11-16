@@ -1,1 +1,3 @@
-{}
+{
+  "oxc.path.oxlint": "./node_modules/.bin/oxlint"
+}
