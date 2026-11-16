@@ -19,6 +19,8 @@ The wallpaper is the contents of `dist/`: HTML, classic JavaScript, CSS, callbac
 
 The import sequence above remains a host acceptance procedure, not a claim that the final editor import was verified. See [the verification matrix](verification.md). Wallpaper Engine documents its [web project workflow](https://docs.wallpaperengine.io/en/web/first/gettingstarted.html) and [custom properties](https://docs.wallpaperengine.io/en/web/customization/properties.html).
 
+For a direct local check without editor copying, use **Open Wallpaper → Open offline wallpaper** and select `dist/index.html`. Its adjacent `project.json` supplies the custom properties. Right-click the local HTML entry and choose **Play in Window → Full HD Preview** for a separate window. This native opening flow and several property display conditions were verified; rendering/capture remains unresolved on the test host. Do not choose `project.json` in this offline-file picker: it was classified as a local scene rather than a web wallpaper.
+
 ## Choose images
 
 In Wallpaper Engine's properties panel, set **Image source** to **Single image** or **Image folder**, then select the image/folder. Use **Bundled samples** to recover from an unavailable external drive or empty selection. Changing a selector without changing the source mode does not activate that source.

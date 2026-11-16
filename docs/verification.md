@@ -70,11 +70,19 @@ For this batch, launched the installed Wallpaper Engine and attempted its docume
 
 The official [command-line reference](https://help.wallpaperengine.io/en/functionality/cli.html) describes named windows and scoped property updates. Failure to observe this preview is an environment/host verification limitation; its cause was not established.
 
+### Follow-up native acceptance attempt
+
+After commit `2464eeb`, restarted the identified test command process and launched Wallpaper Engine normally. Declined its Safe Start offer to restore previous wallpapers/plugins. Used **Open Wallpaper → Open offline wallpaper** to select the built `index.html`, then **Play in Window → Full HD Preview**. This created an observable native preview window. Opening `project.json` through the offline-file picker instead registered it as a local scene; use the HTML entry for this flow.
+
+The native properties panel read the adjacent generated metadata successfully. Observed source choices and conditional single-image selection, the 30-second hold, Fade with one-second duration, shuffle, Fill/Fit, background color, and the controls switch. Fill hid Fit-specific fields; selecting Fit revealed the blurred-image background and 24-pixel blur control. This verifies native panel metadata and those display conditions, not application receipt/rendering of the changes.
+
+The slideshow preview captured as black. A separate minimal HTML page containing only a green background and static text also captured as black in a named native window. Therefore the remaining rendering result cannot be attributed to slideshow code: host presentation or capture is still unresolved. Keyboard, actual directory events, pause/FPS presentation, and native persistence remain unverified. Closed both test windows, returned the main UI selection to the initially selected Particles Ocean entry, and dismissed the UI. The native library retains local `index.html` and `project.json` test registrations; no source files were removed.
+
 ## Native acceptance checklist still to run
 
 Use the [operating guide](operating-guide.md) with a temporary imported project. Record actual results and hardware before marking these complete.
 
-- Import the complete final `dist/` package in the editor; verify all native property controls and display conditions appear.
+- Complete editor import of the final `dist/` package. Direct offline HTML opening and the native property controls/display conditions listed above are verified; editor-managed copy behavior and the remaining conditions still need acceptance.
 - Start without a development server or Node process and with network access unavailable. Confirm the current build renders in the embedded host.
 - Select a real image and a 150+ image folder in the native panel. Confirm natural order, shuffle, manual history, and finite failed-image skipping.
 - Add, modify, remove, and rename files in that selected folder. Confirm actual native directory notifications and visible updated pixels; test folder replacement/disconnection.
