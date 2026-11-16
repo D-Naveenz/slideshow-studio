@@ -10,6 +10,7 @@
     "test": "node --test tests/unit/*.test.mjs tests/unit/*.test.ts",
     "test:package": "pnpm build && node --test tests/package/*.test.mjs",
     "test:browser": "pnpm build && playwright test",
+    "test:stress": "pnpm build && node tests/stress/slideshow.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

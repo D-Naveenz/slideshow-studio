@@ -77,11 +77,13 @@ PixiJS shares each prepared image texture between foreground and background. It 
 pnpm test
 pnpm test:package
 pnpm test:browser
+pnpm test:stress
 ```
 
 - `pnpm test` runs bridge, settings, URL, catalogue, adapter, ordering, clock, resource-budget, playback-race, and saved-override precedence/persistence tests with Node's built-in test runner and native TypeScript stripping. TypeScript tests are also checked by `pnpm build`.
 - `pnpm test:package` builds and checks project metadata, local asset references, classic script syntax, absence of runtime module/Node imports, license files, and intact sample images.
 - `pnpm test:browser` builds and opens packages directly through `file://` in offline Playwright contexts. It checks relocated packages, landscape/portrait/ultrawide windows, early events, imports, bounded loading, playback, failed-image recovery, oversized source preparation, resize, rendered transition/background pixels, idle frame scheduling, GPU texture eviction, and context loss/restoration. Overlay checks cover focus, shortcuts, auto-hide, disabled controls, settings precedence, reload persistence, and storage failures. Both PixiJS and Canvas2D are exercised. It starts no server.
+- `pnpm test:stress` builds and runs 310 manual moves through 150 paths backed by generated 4K/8K photographic JPEG fixtures, then loads an 84.8 MiB noisy 8K PNG. It records prepared resources, texture counts, JavaScript heap, long tasks, and interaction latency under `test-results/stress/`. This optional check needs several minutes, temporary disk space, and substantial transient decoding memory. See the [method, hardware, results, and limits](docs/verification.md).
 
 For browser tests, either install Playwright Chromium with `pnpm exec playwright install chromium`, or select an existing supported browser. For Microsoft Edge in PowerShell:
 
@@ -96,6 +98,8 @@ Screenshots and failure traces are written under the ignored `test-results/` dir
 
 - [Architecture and approved defaults](docs/architecture.md)
 - [Implementation batches and verification status](docs/implementation-plan.md)
+- [Build/import instructions and troubleshooting](docs/operating-guide.md)
+- [Measured performance and native verification limits](docs/verification.md)
 - [Agent instructions and commit workflow](AGENTS.md)
 - [Wallpaper Engine web API reference](https://docs.wallpaperengine.io/en/web/overview.html)
 
