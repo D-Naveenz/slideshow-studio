@@ -9,6 +9,15 @@ export const browserScheduler: Scheduler = {
   clear: handle => clearTimeout(handle as ReturnType<typeof setTimeout>),
 }
 
+export interface FrameScheduler {
+  request(callback: () => void): unknown
+  cancel(handle: unknown): void
+}
+export const browserFrames: FrameScheduler = {
+  request: callback => requestAnimationFrame(callback),
+  cancel: handle => cancelAnimationFrame(handle as number),
+}
+
 export class HoldClock {
   private deadline = 0
   private pausedAt?: number

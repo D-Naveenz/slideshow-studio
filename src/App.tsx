@@ -8,7 +8,7 @@ function App({ runtime, playback }: { runtime: WallpaperRuntime; playback: Playb
   const snapshot = useSyncExternalStore(runtime.subscribe, runtime.getSnapshot)
   const playing = useSyncExternalStore(playback.subscribe, playback.getSnapshot)
   return (
-    <main className="wallpaper-shell" data-source={snapshot.settings.source} data-fps={snapshot.fps} data-paused={playing.paused} data-phase={playing.phase} data-current={playing.current?.name || ''}>
+    <main className="wallpaper-shell" data-source={snapshot.settings.source} data-fps={snapshot.fps} data-paused={playing.paused} data-phase={playing.phase} data-current={playing.current?.name || ''} data-transitioning={playing.transitioning}>
       <h1 className="visually-hidden">Slideshow Studio</h1>
       {playing.phase !== 'ready' ? <section className="playback-message" role="status">
         {playing.phase === 'loading' ? 'Loading image…' : playing.phase === 'empty' ? 'No images selected. Choose an image or folder in Wallpaper Engine.' : 'Unable to load the selected images. Choose another image or refresh the folder.'}

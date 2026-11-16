@@ -10,6 +10,8 @@ import type { SlideRenderer } from '../../src/slideshow/renderer.ts'
 import type { ImageEntry } from '../../src/wallpaper/catalogue.ts'
 import type { WallpaperSnapshot } from '../../src/wallpaper/runtime.ts'
 import { defaults } from '../../src/wallpaper/settings.ts'
+import type { Settings } from '../../src/wallpaper/settings.ts'
+import { imageRect, viewportSize } from '../../src/slideshow/renderer.ts'
 
 const image = (id: string, revision = 0): ImageEntry => ({ id, name: id, url: `file:///C:/${id}`, revision })
 const limits: PrepareLimits = { width: 1920, height: 1080, maxDimension: 8192 }
@@ -24,7 +26,7 @@ class FakeScheduler implements Scheduler {
   clear(handle: unknown) { this.tasks.delete(handle as number) }
   advance(ms: number) {
     const end = this.time + ms
-    for (let guard = 0; guard < 100; guard++) {
+    for (let guard = 0; guard < 10000; guard++) {
       const next = [...this.tasks.entries()].filter(([, task]) => task.due <= end).sort((a, b) => a[1].due - b[1].due)[0]
       if (!next) { this.time = end; return }
       this.time = next[1].due; this.tasks.delete(next[0]); next[1].callback()
@@ -42,12 +44,17 @@ class Source {
   emit(patch: Partial<WallpaperSnapshot>) { this.snapshot = { ...this.snapshot, ...patch }; this.listeners.forEach(listener => listener()) }
 }
 
-function harness(images = [image('1.jpg'), image('2.jpg'), image('3.jpg'), image('4.jpg')]) {
+function harness(images = [image('1.jpg'), image('2.jpg'), image('3.jpg'), image('4.jpg')], settings: Partial<Settings> = {}) {
   const source = new Source(images); const scheduler = new FakeScheduler()
+  source.snapshot = { ...source.snapshot, settings: { ...source.snapshot.settings, transition: 'instant', ...settings } }
   const draws: (string | undefined)[] = []; const released: string[] = []
+  const frames: { at: number; progress?: number; current?: string; incoming?: string }[] = []
+  const gpuReleased: string[] = []
   let size = limits; let active = 0; let maxActive = 0; let alive = 0; let maxAlive = 0
   const jobs: { entry: ImageEntry; signal: AbortSignal; resolve(): void; reject(): void }[] = []
-  const renderer: SlideRenderer = { resize: () => size, draw: slide => { draws.push(slide?.entry.id) }, dispose() {} }
+  const renderer: SlideRenderer = { resize: () => size, draw: (slide, _settings, transition) => {
+    draws.push(slide?.entry.id); frames.push({ at: scheduler.now(), progress: transition?.progress, current: slide?.entry.id, incoming: transition?.incoming.entry.id })
+  }, release: key => { gpuReleased.push(key) }, dispose() {} }
   const prepare: ImagePreparer = (entry, bounds, signal) => {
     active++; maxActive = Math.max(maxActive, active)
     return new Promise<PreparedSlide>((resolve, reject) => {
@@ -63,8 +70,8 @@ function harness(images = [image('1.jpg'), image('2.jpg'), image('3.jpg'), image
       })
     })
   }
-  const playback = new PlaybackController(source, renderer, { prepare, scheduler, random: () => 0.5 })
-  return { source, scheduler, jobs, playback, draws, released, resize: () => { size = { ...limits, width: 800, height: 600 }; playback.resize() }, stats: () => ({ maxActive, maxAlive, alive }) }
+  const playback = new PlaybackController(source, renderer, { prepare, scheduler, frames: { request: callback => scheduler.set(callback, 16), cancel: handle => scheduler.clear(handle) }, random: () => 0.5 })
+  return { source, scheduler, jobs, playback, draws, frames, released, gpuReleased, resize: () => { size = { ...limits, width: 800, height: 600 }; playback.resize() }, stats: () => ({ maxActive, maxAlive, alive }) }
 }
 
 test('natural order sorts numeric filenames; previous/next traverses actual history', () => {
@@ -218,4 +225,95 @@ test('resize retains the displayed image until replacement is ready and disposal
   assert.equal(h.jobs.length, 2)
   h.playback.dispose(); h.jobs[1].resolve(); await flush()
   assert.equal(h.stats().alive, 0); assert.equal(h.scheduler.tasks.size, 0); assert.equal(h.source.listeners.size, 0)
+})
+
+test('Fit contains the foreground, Fill covers, and display dimensions stay bounded', () => {
+  assert.deepEqual(imageRect(200, 400, 800, 400, 'fit'), { x: 300, y: 0, width: 200, height: 400 })
+  assert.deepEqual(imageRect(200, 400, 800, 400, 'fill'), { x: 0, y: -600, width: 800, height: 1600 })
+  const viewport = viewportSize(16000, 9000, 2, 4096)
+  assert.ok(viewport.width <= 4096 && viewport.height <= 4096)
+  assert.ok(viewport.width * viewport.height <= 8_388_608)
+})
+
+test('fade waits for readiness, honors duration, and starts the full hold after completion', async () => {
+  const h = harness(undefined, { transition: 'fade', transitionseconds: 1 })
+  h.jobs[0].resolve(); await flush()
+  h.playback.next(); assert.equal(h.playback.getSnapshot().transitioning, false)
+  h.jobs[1].resolve(); await flush()
+  assert.equal(h.playback.getSnapshot().transitioning, true)
+  assert.equal(h.playback.getSnapshot().current?.id, '1.jpg')
+  h.scheduler.advance(500)
+  const middle = h.frames.at(-1)!
+  assert.ok(middle.progress! > 0.4 && middle.progress! < 0.6)
+  assert.equal(middle.incoming, '2.jpg')
+  h.scheduler.advance(600); await flush()
+  assert.equal(h.playback.getSnapshot().transitioning, false)
+  assert.equal(h.playback.getSnapshot().current?.id, '2.jpg')
+  const holdStart = h.frames.findLast(frame => frame.current === '2.jpg' && frame.progress === undefined)!.at
+  h.jobs[2].resolve(); await flush()
+  h.scheduler.advance(holdStart + 999 - h.scheduler.now())
+  assert.equal(h.playback.getSnapshot().transitioning, false)
+  h.scheduler.advance(1); await flush()
+  assert.equal(h.playback.getSnapshot().transitioning, true)
+  assert.ok(h.stats().maxAlive <= 3)
+  h.playback.dispose()
+})
+
+test('pausing an active slide transition freezes frames and resumes its remaining duration', async () => {
+  const h = harness(undefined, { transition: 'slide', transitionseconds: 1 })
+  h.jobs[0].resolve(); await flush(); h.jobs[1].resolve(); await flush()
+  h.playback.next(); h.scheduler.advance(400)
+  h.source.emit({ paused: true })
+  const count = h.frames.length; const progress = h.frames.at(-1)!.progress
+  h.scheduler.advance(5000)
+  assert.equal(h.frames.length, count); assert.equal(h.playback.getSnapshot().current?.id, '1.jpg')
+  h.source.emit({ paused: false }); h.scheduler.advance(300)
+  assert.ok(h.frames.at(-1)!.progress! > progress!)
+  assert.equal(h.playback.getSnapshot().transitioning, true)
+  h.scheduler.advance(400); await flush()
+  assert.equal(h.playback.getSnapshot().current?.id, '2.jpg')
+  assert.equal(h.playback.getSnapshot().transitioning, false)
+  h.playback.dispose()
+})
+
+test('animation frames respect host FPS and stop while idle', async () => {
+  const h = harness(undefined, { transition: 'fade', transitionseconds: 1 })
+  h.source.emit({ fps: 10 })
+  h.jobs[0].resolve(); await flush(); h.jobs[1].resolve(); await flush()
+  h.playback.next(); const count = h.frames.length
+  h.scheduler.advance(1050); await flush()
+  assert.equal(h.playback.getSnapshot().transitioning, false)
+  assert.ok(h.frames.length - count <= 11)
+  const ended = h.frames.length
+  h.scheduler.advance(500)
+  assert.equal(h.frames.length, ended)
+  assert.ok(h.gpuReleased.length <= h.released.length)
+  h.playback.dispose()
+})
+
+test('source changes cancel active transitions and release their GPU resources before pixels', async () => {
+  const h = harness(undefined, { transition: 'fade' })
+  h.jobs[0].resolve(); await flush(); h.jobs[1].resolve(); await flush()
+  h.playback.next(); h.scheduler.advance(100)
+  h.source.emit({ images: [] })
+  const count = h.frames.length
+  assert.equal(h.playback.getSnapshot().transitioning, false)
+  assert.equal(h.playback.getSnapshot().phase, 'empty')
+  h.scheduler.advance(5000); await flush()
+  assert.equal(h.frames.length, count)
+  assert.equal(h.gpuReleased.length, h.released.length)
+  assert.equal(h.stats().alive, 0)
+  h.playback.dispose()
+})
+
+test('non-divisor FPS limits carry fractional frame intervals without catch-up bursts', async () => {
+  const h = harness(undefined, { transition: 'fade', transitionseconds: 1 })
+  h.source.emit({ fps: 24 })
+  h.jobs[0].resolve(); await flush(); h.jobs[1].resolve(); await flush()
+  h.playback.next(); const start = h.frames.length
+  h.scheduler.advance(1050); await flush()
+  const rendered = h.frames.length - start
+  assert.ok(rendered >= 23 && rendered <= 25)
+  assert.equal(h.playback.getSnapshot().transitioning, false)
+  h.playback.dispose()
 })

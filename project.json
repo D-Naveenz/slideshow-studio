@@ -1,6 +1,6 @@
 {
   "title": "Slideshow Studio",
-  "description": "A local-image slideshow with configurable timing, natural ordering, shuffle, and bounded image preparation. This development build uses instant Fill rendering; additional effects follow in subsequent batches.",
+  "description": "A local-image slideshow with bounded image preparation, natural ordering, shuffle, fade/slide transitions, and Fit/Fill sizing with solid or blurred backgrounds. Uses PixiJS WebGL with a Canvas2D fallback.",
   "type": "web",
   "file": "index.html",
   "preview": "wallpapers/1.jpg",

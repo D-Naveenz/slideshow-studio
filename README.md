@@ -2,7 +2,7 @@
 
 A wallpaper slideshow framework for Wallpaper Engine, built with Vite, React, and TypeScript. The target is a self-contained HTML/CSS/JavaScript wallpaper that fills the viewport, cycles local images, and runs offline without Node.
 
-The current build plays a fullscreen slideshow with natural ordering, shuffle, configurable hold time, and bounded image preparation. Browser preview supports local image/folder selection and navigation. Four sample images are included under `public/wallpapers/`. This batch uses instant swaps and Fill sizing; transitions, Fit/blur, and the desktop toolbar arrive in later batches. The package has been checked in an offline browser; actual Wallpaper Engine integration is not yet verified.
+The current build plays a viewport-filling slideshow with natural ordering, shuffle, bounded image preparation, and fade, slide, or instant transitions. PixiJS renders Fill or Fit images with solid or blurred backgrounds; Canvas2D provides a fallback. Browser preview supports local image/folder selection and navigation. Four sample images are included under `public/wallpapers/`. The desktop toolbar/settings overlay follows in the next batch. Offline browser checks and a limited native Wallpaper Engine rendering preview have passed; full host integration verification remains pending.
 
 ## Development
 
@@ -29,7 +29,7 @@ The build outputs `index.html`, `wallpaper.js`, `wallpaper.css`, `wallpaper-brid
 
 For a manual Wallpaper Engine check, build first, then drag **`dist/index.html`** onto **Create Wallpaper** in the editor. Import only the built `dist/` folder, never the repository root or `node_modules`. Wallpaper Engine copies imported files into its project directory; rebuilding this repository does not update that copy automatically.
 
-Project metadata lives in the root `project.json`. The build generates `dist/project.json` properties from the same definitions used for settings validation, so property keys, defaults, and slider bounds stay consistent. Source, hold time, shuffle, and host pause updates drive playback. Transition, Fit/blur, and end-user control effects are implemented in subsequent batches.
+Project metadata lives in the root `project.json`. The build generates `dist/project.json` properties from the same definitions used for settings validation, so property keys, defaults, and slider bounds stay consistent. Source, timing, transitions, shuffle, Fit/Fill, backgrounds, and host pause/FPS updates drive playback. End-user toolbar/settings controls follow in the next batch.
 
 ## Image source preview
 
@@ -37,20 +37,20 @@ Project metadata lives in the root `project.json`. The build generates `dist/pro
 
 Choose bundled samples, a single image, or a folder. Browser selections are session-only, filter out unsupported extensions, and keep object URLs for loading; replacing selections releases their old URLs. The catalogue shows at most four names and a total count, even for large folders. Playback prepares only neighboring images, rather than loading the whole catalogue.
 
-The panel includes previous, play/pause, and next controls, the current filename, and estimated prepared-resource usage. Expand **Simulate Wallpaper Engine events** to change hold time/shuffle, send FPS/pause updates through the callback bridge, and inspect received settings. Zero FPS means uncapped; animation frame pacing arrives with the animated renderer. Real Wallpaper Engine users select files/folders through its native panel; the directory property uses `fetchall` to receive paths and change/removal notifications.
+The panel includes previous, play/pause, and next controls, the current filename, renderer, and estimated prepared-resource usage. Expand **Simulate Wallpaper Engine events** to change timing, transitions, sizing, backgrounds, and shuffle, send FPS/pause updates through the callback bridge, and inspect received settings. Zero FPS means uncapped. Real Wallpaper Engine users select files/folders through its native panel; the directory property uses `fetchall` to receive paths and change/removal notifications. Append `?preview=1&renderer=canvas` to test the Canvas2D fallback explicitly.
 
 Supported catalogue extensions are JPEG/JPG, PNG/PNGA, WebP, BMP, GIF, SVG, and AVIF. Actual decoding depends on the embedded browser; video and animated playback are outside this release.
 
 ## Playback and resource use
 
 - Natural filename order is the default. Shuffle visits each available image once per cycle and avoids immediate cycle-boundary repeats. Previous/next follows actual visits, retaining up to 512 history entries. Changing the catalogue or shuffle setting starts a new shuffle cycle.
-- Hold time starts when a prepared image is displayed (30 seconds by default). Manual navigation restarts the hold. Host pause, hidden-document suspension, and the preview pause control preserve remaining time; all active pause reasons must clear before the timer resumes.
+- Hold time starts after the transition completes (30 seconds by default, with a one-second fade). Manual navigation restarts the hold. Host pause, hidden-document suspension, and the preview pause control preserve remaining hold/transition time; all active pause reasons must clear before playback resumes. Manual navigation while paused swaps immediately and leaves playback paused.
 - One worker loads/decodes candidates sequentially. It keeps the current image visible while waiting for the next one; repeated navigation requests are coalesced while a move is pending. A single-image source stays static.
 - At most three prepared slides are retained, prioritizing current/incoming/next over older history. Prepared images are resized to useful viewport resolution, with an 8192-pixel side limit. The display canvas is capped at 8,388,608 pixels.
-- The 256 MiB estimate includes a 48 MiB render reserve and conservative eight-bytes-per-pixel prepared allocations (canvas plus a future GPU texture). Previous resources are evicted before adding extra candidates. Browser decoding, native caches, and temporary source allocations are outside this estimate, so it is not a process-memory cap.
+- The 256 MiB estimate includes a 112 MiB render reserve for the display, two composed slides, and blur targets, plus conservative eight-bytes-per-pixel prepared allocations (canvas plus GPU source texture). Previous resources are evicted before adding extra candidates; GPU textures are released before their prepared canvases. Browser decoding, native caches, and temporary source allocations are outside this estimate, so it is not a process-memory cap.
 - Failed images are skipped for their current revision without endless retries. Reselecting a source or changing a file makes it eligible again; native file requests use revision tokens to bypass stale image-cache entries. Empty and all-failed selections show a status message. Source changes discard stale results; resizing keeps the old prepared image visible until its replacement is ready.
 
-The canvas redraws on image/settings/viewport changes and has no continuous rendering loop. Heavy source decoding and downsampling can still stall on some hardware; full 4K/8K performance measurements belong to the final verification batch.
+PixiJS shares each prepared image texture between foreground and background. It composes slides once, blurs backgrounds at reduced resolution, and animates the resulting textures. Frames run only during transitions or invalidation, paced by the host FPS setting (30 FPS in preview by default). Static slides schedule no animation frames. Context loss switches to Canvas2D; restoration rebuilds GPU compositions. Heavy source decoding, texture uploads, and downsampling can still stall on some hardware; full 4K/8K performance measurements belong to the final verification batch.
 
 ## Tests
 
@@ -62,7 +62,7 @@ pnpm test:browser
 
 - `pnpm test` runs bridge, settings, URL, catalogue, adapter, ordering, clock, resource-budget, and playback-race tests with Node's built-in test runner and native TypeScript stripping. TypeScript tests are also checked by `pnpm build`.
 - `pnpm test:package` builds and checks project metadata, local asset references, classic script syntax, absence of runtime module/Node imports, license files, and intact sample images.
-- `pnpm test:browser` builds and opens packages directly through `file://` in offline Playwright contexts. It checks relocated packages, landscape/portrait/ultrawide windows, early events, file/folder inputs, bounded loading from large catalogues, timing/pause/navigation, failed-image recovery, oversized source preparation, and resize. It starts no server.
+- `pnpm test:browser` builds and opens packages directly through `file://` in offline Playwright contexts. It checks relocated packages, landscape/portrait/ultrawide windows, early events, imports, bounded loading, playback, failed-image recovery, oversized source preparation, resize, rendered transition/background pixels, idle frame scheduling, GPU texture eviction, and context loss/restoration. Both PixiJS and Canvas2D are exercised. It starts no server.
 
 For browser tests, either install Playwright Chromium with `pnpm exec playwright install chromium`, or select an existing supported browser. For Microsoft Edge in PowerShell:
 

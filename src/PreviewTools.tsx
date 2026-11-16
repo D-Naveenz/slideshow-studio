@@ -22,7 +22,7 @@ export function PreviewTools({ runtime, snapshot, playback, playing }: {
       <header>
         <p className="eyebrow">Development preview</p>
         <h2>Image sources</h2>
-        <p>Instant slideshow playback. Transition effects and the desktop toolbar arrive in later batches.</p>
+        <p>Preview slideshow transitions, sizing, and backgrounds. The desktop toolbar arrives in the next batch.</p>
       </header>
       <div className="preview-field">
         <label htmlFor="preview-source">Image source</label>
@@ -47,7 +47,9 @@ export function PreviewTools({ runtime, snapshot, playback, playing }: {
         {images.length > 4 ? <p>And {images.length - 4} more.</p> : null}
       </section>
       <section aria-label="Playback preview" className="preview-playback">
+        <p data-testid="renderer-name">{playing.renderer}</p>
         <p>Showing: <output data-testid="current-image">{playing.current?.name || 'None'}</output></p>
+        {playing.incoming ? <p>Transitioning to: {playing.incoming.name}</p> : null}
         <p data-testid="playback-cache" data-cached={playing.cached} data-bytes={playing.estimatedBytes}>
           {playing.cached} prepared slides · {(playing.estimatedBytes / 1024 / 1024).toFixed(1)} MiB estimated, including render reserve
         </p>
@@ -60,6 +62,26 @@ export function PreviewTools({ runtime, snapshot, playback, playing }: {
       </section>
       <details>
         <summary>Simulate Wallpaper Engine events</summary>
+        <div className="preview-field"><label htmlFor="preview-effect">Transition</label>
+          <select id="preview-effect" value={settings.transition} onChange={event => window.wallpaperPropertyListener.applyUserProperties({ transition: { value: event.target.value } })}>
+            <option value="fade">Fade</option><option value="slide">Slide</option><option value="instant">Instant</option>
+          </select>
+        </div>
+        <label className="preview-field">Transition duration (seconds)
+          <input type="number" min="0.1" max="10" step="0.1" value={settings.transitionseconds} onChange={event => window.wallpaperPropertyListener.applyUserProperties({ transitionseconds: { value: event.currentTarget.valueAsNumber } })} />
+        </label>
+        <div className="preview-field"><label htmlFor="preview-fit">Image sizing</label>
+          <select id="preview-fit" value={settings.fit} onChange={event => window.wallpaperPropertyListener.applyUserProperties({ fit: { value: event.target.value } })}>
+            <option value="fill">Fill</option><option value="fit">Fit</option>
+          </select>
+        </div>
+        <div className="preview-field"><label htmlFor="preview-background">Fit background</label>
+          <select id="preview-background" value={settings.background} onChange={event => window.wallpaperPropertyListener.applyUserProperties({ background: { value: event.target.value } })}>
+            <option value="blur">Blurred image</option><option value="color">Solid color</option>
+          </select>
+        </div>
+        <label className="preview-field">Background color<input type="color" value={settings.backgroundcolor} onChange={event => window.wallpaperPropertyListener.applyUserProperties({ backgroundcolor: { value: event.target.value } })} /></label>
+        <label className="preview-field">Blur strength<input type="range" min="0" max="80" value={settings.blur} onChange={event => window.wallpaperPropertyListener.applyUserProperties({ blur: { value: event.currentTarget.valueAsNumber } })} /></label>
         <label className="preview-field">Image hold time (seconds)
           <input type="number" min="1" max="3600" value={settings.holdseconds} onChange={event => window.wallpaperPropertyListener.applyUserProperties({ holdseconds: { value: event.currentTarget.valueAsNumber } })} />
         </label>

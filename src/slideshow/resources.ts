@@ -1,7 +1,8 @@
 import type { ImageEntry } from '../wallpaper/catalogue.ts'
 
 export const RESOURCE_BUDGET = 256 * 1024 * 1024
-export const RENDER_RESERVE = 48 * 1024 * 1024
+// Display buffer, two full-resolution composed slides, and reduced-resolution blur targets.
+export const RENDER_RESERVE = 112 * 1024 * 1024
 export const SLIDE_BUDGET = Math.floor((RESOURCE_BUDGET - RENDER_RESERVE) / 3)
 export interface PrepareLimits { width: number; height: number; maxDimension: number }
 export interface PreparedSlide {
@@ -63,12 +64,14 @@ export const prepareImage: ImagePreparer = async (entry, limits, signal) => {
 /** Reservations include the in-flight slot, preventing a transient fourth prepared slide. */
 export class ResourceCache {
   private items = new Map<string, PreparedSlide>()
+  private release: (key: string) => void
+  constructor(release: (key: string) => void = () => {}) { this.release = release }
   get size() { return this.items.size }
   get bytes() { return RENDER_RESERVE + [...this.items.values()].reduce((sum, slide) => sum + slide.bytes, 0) }
   get(key: string) { return this.items.get(key) }
   reserve(priority: readonly string[]) {
     const keep = new Set([...new Set(priority)].slice(0, 3))
-    for (const [key, slide] of this.items) if (!keep.has(key)) { this.items.delete(key); slide.dispose() }
+    for (const [key, slide] of this.items) if (!keep.has(key)) { this.items.delete(key); this.release(key); slide.dispose() }
   }
   add(slide: PreparedSlide) {
     if (this.items.has(slide.key)) throw new Error('Resource already cached')

@@ -1,11 +1,11 @@
 import type { ImageEntry } from '../wallpaper/catalogue.ts'
 import type { WallpaperRuntime, WallpaperSnapshot } from '../wallpaper/runtime.ts'
-import { HoldClock, browserScheduler } from './clock.ts'
-import type { Scheduler } from './clock.ts'
+import { HoldClock, browserScheduler, browserFrames } from './clock.ts'
+import type { FrameScheduler, Scheduler } from './clock.ts'
 import { PlaybackOrder } from './order.ts'
 import { prepareImage, ResourceCache, resourceKey } from './resources.ts'
 import type { ImagePreparer, PreparedSlide, PrepareLimits } from './resources.ts'
-import type { SlideRenderer } from './renderer.ts'
+import type { SlideRenderer, TransitionFrame } from './renderer.ts'
 
 export interface PlaybackSnapshot {
   readonly phase: 'loading' | 'ready' | 'empty' | 'error'
@@ -19,6 +19,9 @@ export interface PlaybackSnapshot {
   readonly cached: number
   readonly estimatedBytes: number
   readonly failed: number
+  readonly renderer: string
+  readonly transitioning: boolean
+  readonly incoming?: ImageEntry
 }
 type Inputs = Pick<WallpaperRuntime, 'getSnapshot' | 'subscribe'>
 type Intent = { direction: -1 | 0 | 1; target?: string; restart: boolean; automatic?: boolean }
@@ -31,14 +34,20 @@ export class PlaybackController {
   private entries = new Map<string, ImageEntry>()
   private failed = new Set<string>()
   private order: PlaybackOrder
-  private cache = new ResourceCache()
+  private cache = new ResourceCache(key => this.renderer.release?.(key))
   private clock = new HoldClock()
+  private transitionClock = new HoldClock()
+  private transition?: TransitionFrame & { duration: number; navigation: Intent }
+  private frames: FrameScheduler
+  private frame?: unknown
+  private lastFrameAt = 0
   private renderer: SlideRenderer
   private limits: PrepareLimits
   private prepare: ImagePreparer
   private scheduler: Scheduler
   private listeners = new Set<() => void>()
   private unsubscribe: () => void
+  private unsubscribeRenderer?: () => void
   private current?: PreparedSlide
   private intent?: Intent
   private worker = false
@@ -53,10 +62,12 @@ export class PlaybackController {
   private paused = false
   private disposed = false
 
-  constructor(source: Inputs, renderer: SlideRenderer, options: { prepare?: ImagePreparer; scheduler?: Scheduler; random?: () => number } = {}) {
+  constructor(source: Inputs, renderer: SlideRenderer, options: { prepare?: ImagePreparer; scheduler?: Scheduler; frames?: FrameScheduler; random?: () => number } = {}) {
     this.renderer = renderer; this.limits = renderer.resize()
     this.prepare = options.prepare || prepareImage; this.scheduler = options.scheduler || browserScheduler
+    this.frames = options.frames || browserFrames
     this.order = new PlaybackOrder(options.random); this.input = source.getSnapshot()
+    this.unsubscribeRenderer = renderer.subscribe?.(() => this.publish())
     this.unsubscribe = source.subscribe(() => this.update(source.getSnapshot()))
     this.update(this.input)
   }
@@ -70,6 +81,8 @@ export class PlaybackController {
       preparing: this.loading, navigating: !!this.intent,
       canNext: !!this.current && this.order.count > 1, canPrevious: !!this.current && !!this.order.previous,
       cached: this.cache.size, estimatedBytes: this.cache.bytes, failed: this.failed.size,
+      renderer: this.renderer.name || 'Custom renderer',
+      transitioning: !!this.transition, incoming: this.transition?.incoming.entry,
     })
     this.listeners.forEach(listener => listener())
   }
@@ -79,7 +92,7 @@ export class PlaybackController {
     return entry && !this.failed.has(identity(entry)) ? entry : undefined
   }
   private priorities(target?: string) {
-    const keys = [this.current?.key, target]
+    const keys = [this.current?.key, this.transition?.incoming.key, target]
     for (const id of [this.order.next(), this.order.previous]) {
       const entry = this.usable(id); if (entry) keys.push(resourceKey(entry, this.limits))
     }
@@ -88,7 +101,7 @@ export class PlaybackController {
   private clearTimer() { if (this.timer !== undefined) this.scheduler.clear(this.timer); this.timer = undefined }
   private arm() {
     this.clearTimer()
-    if (!this.disposed && this.current && !this.paused && !this.intent && this.order.count > 1) {
+    if (!this.disposed && this.current && !this.paused && !this.intent && !this.transition && this.order.count > 1) {
       this.timer = this.scheduler.set(() => { this.timer = undefined; this.navigate(1, true) }, this.clock.remaining(this.scheduler.now()))
     }
   }
@@ -98,9 +111,13 @@ export class PlaybackController {
     this.paused = paused
     if (paused) {
       this.clock.pause(this.scheduler.now()); this.clearTimer()
-      if (this.intent?.automatic) this.intent = undefined
+      this.transitionClock.pause(this.scheduler.now()); this.cancelFrame()
+      if (this.intent?.automatic && !this.transition) this.intent = undefined
     }
-    else { this.clock.resume(this.scheduler.now()); this.arm() }
+    else {
+      this.clock.resume(this.scheduler.now()); this.transitionClock.resume(this.scheduler.now())
+      this.lastFrameAt = this.scheduler.now(); this.requestFrame(); this.arm()
+    }
   }
   private update(next: WallpaperSnapshot) {
     if (this.disposed) return
@@ -108,7 +125,7 @@ export class PlaybackController {
     const signature = JSON.stringify([next.settings.source, next.images.map(entry => [entry.id, entry.revision])])
     const changed = signature !== this.signature
     if (changed || prior.settings.shuffle !== next.settings.shuffle) {
-      this.invalidate(); this.clearTimer()
+      this.invalidate(); this.clearTimer(); this.cancelTransition()
       if (prior.settings.source !== next.settings.source) this.failed.clear()
       this.entries = new Map(next.images.map(entry => [entry.id, entry]))
       const identities = new Set(next.images.map(identity))
@@ -124,12 +141,12 @@ export class PlaybackController {
     this.pauseChanged()
     if (this.current) {
       if (prior.settings.holdseconds !== next.settings.holdseconds) this.clock.start(this.scheduler.now(), next.settings.holdseconds * 1000)
-      this.renderer.draw(this.current, next.settings)
+      this.renderer.draw(this.current, next.settings, this.transition)
     }
     this.arm(); this.publish(); void this.pump()
   }
   private async pump() {
-    if (this.worker || this.disposed) return
+    if (this.worker || this.disposed || this.transition) return
     this.worker = true
     try {
       while (!this.disposed) {
@@ -165,13 +182,18 @@ export class PlaybackController {
             continue
           } finally { this.loading = false; this.loadingKey = undefined }
         }
+        this.renderer.warm?.(slide)
         // An intent may have arrived while prefetch was in progress. Re-evaluate at the loop head.
         if (navigation && navigation === this.intent) {
-          this.order.commit(entry.id, navigation.direction)
-          this.current = slide; this.intent = undefined
-          this.renderer.draw(slide, this.input.settings)
-          if (navigation.restart) this.clock.start(this.scheduler.now(), this.input.settings.holdseconds * 1000)
-          this.arm()
+          if (this.current && this.current.key !== slide.key && navigation.direction !== 0 && !this.paused && this.input.settings.transition !== 'instant') {
+            this.transition = { incoming: slide, progress: 0, direction: navigation.direction, effect: this.input.settings.transition, duration: this.input.settings.transitionseconds * 1000, navigation }
+            this.renderer.draw(this.current, this.input.settings, this.transition)
+            this.transitionClock.start(this.scheduler.now(), this.transition.duration)
+            this.lastFrameAt = this.scheduler.now()
+            this.publish(); this.requestFrame()
+            break
+          }
+          this.commit(slide, navigation)
         }
         this.cache.reserve(this.priorities()); this.publish()
       }
@@ -179,6 +201,41 @@ export class PlaybackController {
       this.worker = false
       if (!this.disposed) { this.arm(); this.publish() }
     }
+  }
+  private commit(slide: PreparedSlide, navigation: Intent) {
+    this.order.commit(slide.entry.id, navigation.direction)
+    this.current = slide; this.intent = undefined
+    this.renderer.draw(slide, this.input.settings)
+    if (navigation.restart) this.clock.start(this.scheduler.now(), this.input.settings.holdseconds * 1000)
+    this.arm()
+  }
+  private cancelFrame() { if (this.frame !== undefined) this.frames.cancel(this.frame); this.frame = undefined }
+  private cancelTransition() { this.cancelFrame(); this.transition = undefined }
+  private requestFrame() {
+    if (this.transition && !this.paused && !this.disposed && this.frame === undefined) this.frame = this.frames.request(this.animate)
+  }
+  private animate = () => {
+    this.frame = undefined
+    const transition = this.transition
+    if (!transition || this.paused || this.disposed) return
+    const now = this.scheduler.now()
+    const interval = this.input.fps > 0 ? 1000 / this.input.fps : 0
+    if (now - this.lastFrameAt + 0.01 >= interval) {
+      // Preserve the fractional interval for limits such as 24 FPS on a 60 Hz display.
+      this.lastFrameAt = interval > 0 ? this.lastFrameAt + Math.max(1, Math.floor((now - this.lastFrameAt + 0.01) / interval)) * interval : now
+      const progress = Math.max(0, Math.min(1, 1 - this.transitionClock.remaining(now) / transition.duration))
+      transition.progress = progress * progress * (3 - 2 * progress)
+      if (progress >= 1) { this.finishTransition(); return }
+      this.renderer.draw(this.current, this.input.settings, transition)
+    }
+    this.requestFrame()
+  }
+  private finishTransition(work = true) {
+    const transition = this.transition
+    if (!transition) return
+    this.cancelTransition(); this.commit(transition.incoming, transition.navigation)
+    this.cache.reserve(this.priorities()); this.publish()
+    if (work) void this.pump()
   }
   private navigate(direction: -1 | 1, automatic = false) {
     if (this.disposed || !this.current || this.intent || (direction < 0 ? !this.order.previous : this.order.count < 2)) return
@@ -193,6 +250,7 @@ export class PlaybackController {
   suspend(paused: boolean) { this.suspended = paused; this.pauseChanged(); this.publish() }
   resize() {
     if (this.disposed) return
+    this.finishTransition(false)
     const limits = this.renderer.resize()
     this.renderer.draw(this.current, this.input.settings)
     if (JSON.stringify(limits) === JSON.stringify(this.limits)) return
@@ -202,7 +260,7 @@ export class PlaybackController {
     this.publish(); void this.pump()
   }
   dispose() {
-    this.disposed = true; this.unsubscribe(); this.clearTimer(); this.invalidate()
+    this.disposed = true; this.unsubscribe(); this.unsubscribeRenderer?.(); this.clearTimer(); this.invalidate(); this.cancelTransition()
     this.listeners.clear(); this.cache.dispose(); this.renderer.dispose()
   }
 }

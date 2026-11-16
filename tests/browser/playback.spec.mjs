@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 import { mkdirSync, writeFileSync } from 'node:fs'
+import { SLIDE_BUDGET } from '../../src/slideshow/resources.ts'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const url = pathToFileURL(resolve(root, 'dist/index.html')).href + '?preview=1'
@@ -14,7 +15,7 @@ test('automatic playback, host pause, and backward navigation preserve hold timi
   const shell = page.locator('main')
   await expect(shell).toHaveAttribute('data-current', '1.jpg')
   await expect(page.getByTestId('playback-cache')).toHaveAttribute('data-cached', '2')
-  await page.evaluate(() => window.wallpaperPropertyListener.applyUserProperties({ holdseconds: { value: 1 } }))
+  await page.evaluate(() => window.wallpaperPropertyListener.applyUserProperties({ holdseconds: { value: 1 }, transition: { value: 'instant' } }))
   await page.clock.fastForward(750)
   await page.evaluate(() => window.wallpaperPropertyListener.setPaused(true))
   await page.clock.fastForward(60_000)
@@ -57,7 +58,7 @@ test('oversized sources prepare screen-sized pixels, and resize keeps the viewpo
     window.__preparedSizes = []
     const draw = CanvasRenderingContext2D.prototype.drawImage
     CanvasRenderingContext2D.prototype.drawImage = function (...args) {
-      if (this.canvas.className === 'wallpaper-canvas' && args[0] instanceof HTMLCanvasElement) window.__preparedSizes.push([args[0].width, args[0].height])
+      if (args[0] instanceof HTMLImageElement) window.__preparedSizes.push([this.canvas.width, this.canvas.height])
       return Reflect.apply(draw, this, args)
     }
   })
@@ -67,7 +68,7 @@ test('oversized sources prepare screen-sized pixels, and resize keeps the viewpo
   await expect(page.locator('main')).toHaveAttribute('data-current', '8k.svg')
   const sizes = await page.evaluate(() => window.__preparedSizes)
   expect(sizes.at(-1)[0]).toBeLessThan(8192)
-  expect(sizes.at(-1)[0] * sizes.at(-1)[1] * 8).toBeLessThanOrEqual((256 - 48) * 1024 * 1024 / 3)
+  expect(sizes.at(-1)[0] * sizes.at(-1)[1] * 8).toBeLessThanOrEqual(SLIDE_BUDGET)
   await page.setViewportSize({ width: 500, height: 900 })
   await expect.poll(() => page.locator('.wallpaper-canvas').evaluate(canvas => canvas.width)).toBe(500)
   expect(await page.locator('.wallpaper-canvas').boundingBox()).toEqual({ x: 0, y: 0, width: 500, height: 900 })
