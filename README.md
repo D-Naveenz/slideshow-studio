@@ -1,35 +1,39 @@
-# React + TypeScript + Vite
+# Slideshow Studio
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A wallpaper slideshow framework for Wallpaper Engine, built with Vite, React, and TypeScript. The target is a self-contained HTML/CSS/JavaScript wallpaper that fills the viewport, cycles local images, and runs offline without Node.
 
-Currently, two official plugins are available:
+The repository currently contains the Vite starter, React Compiler, Oxlint, and four sample images under `public/wallpapers/`. Slideshow functionality and Wallpaper Engine packaging are planned in separate implementation batches; the current build is not yet a verified Wallpaper Engine wallpaper.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Development
 
-## React Compiler
+Use Node and pnpm for development and builds:
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-You can also try [the experimental native React Compiler support in plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md#rust-react-compiler) by using `compiler: true` in the plugin options instead of using the Babel plugin.
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```sh
+pnpm install
+pnpm dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Available checks and build commands:
+
+```sh
+pnpm lint
+pnpm build
+pnpm preview
+```
+
+`pnpm build` runs TypeScript project checks and builds into `dist/`. `pnpm preview` serves that build for browser inspection. Automated slideshow tests and local-file packaging checks will be added in later batches.
+
+## Project documentation
+
+- [Architecture and approved defaults](docs/architecture.md)
+- [Implementation batches and verification status](docs/implementation-plan.md)
+- [Agent instructions and commit workflow](AGENTS.md)
+- [Wallpaper Engine web API reference](https://docs.wallpaperengine.io/en/web/overview.html)
+
+Development proceeds one batch per user commit. Agents do not commit or push; they stop after verification and wait for `continue` after the user commits.
+
+CodeGraph is initialized locally. Its generated index is ignored by Git; see `AGENTS.md` for exploration commands and the Windows CLI fallback.
+
+## License
+
+See [LICENSE.txt](LICENSE.txt) for the GNU General Public License v3 terms.
