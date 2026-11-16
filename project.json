@@ -1,6 +1,6 @@
 {
   "title": "Slideshow Studio",
-  "description": "A local-image slideshow framework. Image source configuration is available; playback is added in subsequent batches.",
+  "description": "A local-image slideshow with configurable timing, natural ordering, shuffle, and bounded image preparation. This development build uses instant Fill rendering; additional effects follow in subsequent batches.",
   "type": "web",
   "file": "index.html",
   "preview": "wallpapers/1.jpg",

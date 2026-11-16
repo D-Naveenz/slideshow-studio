@@ -11,7 +11,7 @@ async function openPreview(page) {
   const errors = []; const requests = []
   page.on('pageerror', error => errors.push(error.message))
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()) })
-  page.on('requestfailed', request => errors.push(request.url()))
+  page.on('requestfailed', request => { if (request.failure()?.errorText !== 'net::ERR_ABORTED') errors.push(request.url()) })
   page.on('request', request => requests.push(request.url()))
   await page.addInitScript(() => {
     const create = URL.createObjectURL.bind(URL); const revoke = URL.revokeObjectURL.bind(URL)
@@ -22,37 +22,49 @@ async function openPreview(page) {
   await page.goto(previewUrl)
   await expect(page.getByRole('complementary', { name: 'Browser preview tools' })).toBeVisible()
   return {
+    requests,
     async check() {
       expect(errors).toEqual([])
-      expect(requests.filter(url => /^(?:https?|wss?|blob):/.test(url))).toEqual([])
-      // Only the packaging sample may load; selecting a folder never fetches its images.
-      expect(requests.filter(url => url.startsWith('file:') && !url.startsWith(new URL('.', previewUrl).href))).toEqual([])
+      expect(requests.filter(url => /^(?:https?|wss?):/.test(url))).toEqual([])
+      const cache = page.getByTestId('playback-cache')
+      expect(Number(await cache.getAttribute('data-cached'))).toBeLessThanOrEqual(3)
+      expect(Number(await cache.getAttribute('data-bytes'))).toBeLessThanOrEqual(256 * 1024 * 1024)
     },
   }
 }
 
-test('host properties and directory deltas update the preview without eager loading', async ({ page }) => {
+test('host directory deltas keep a large catalogue while preparing only neighboring images', async ({ page }, testInfo) => {
   const diagnostics = await openPreview(page)
-  await page.evaluate(() => {
+  const folder = testInfo.outputPath('Native Album')
+  mkdirSync(folder, { recursive: true })
+  const files = Array.from({ length: 150 }, (_, i) => resolve(folder, `${i}.svg`))
+  for (const file of files) writeFileSync(file, '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32"><rect width="64" height="32" fill="#346552"/></svg>')
+  await page.evaluate(({ folder, files }) => {
     const host = window.wallpaperPropertyListener
     host.userDirectoryFilesAddedOrChanged('otherproperty', ['C:/ignored.jpg'])
-    host.userDirectoryFilesAddedOrChanged('imagedirectory', Array.from({ length: 150 }, (_, i) => `C:/Album/${i}.JPG`))
-    host.applyUserProperties({ source: { value: 'directory' }, imagedirectory: { value: 'C:/Album' }, shuffle: { value: true }, holdseconds: { value: 45 }, backgroundcolor: { value: '1 0.5 0' } })
+    host.userDirectoryFilesAddedOrChanged('imagedirectory', files)
+    host.applyUserProperties({ source: { value: 'directory' }, imagedirectory: { value: folder }, holdseconds: { value: 45 }, backgroundcolor: { value: '1 0.5 0' } })
     host.applyUserProperties({ shuffle: { value: false }, transition: { value: 'invalid' } })
-  })
+  }, { folder, files })
   await expect(page.getByTestId('source-count')).toHaveText('150')
+  await expect(page.locator('main')).toHaveAttribute('data-current', '0.svg')
   const settings = await page.getByLabel('Received settings').textContent()
   expect(JSON.parse(settings)).toMatchObject({ shuffle: false, holdseconds: 45, transition: 'fade', backgroundcolor: '#ff8000' })
-  await page.evaluate(() => window.wallpaperPropertyListener.userDirectoryFilesRemoved('imagedirectory', ['c:\\album\\0.jpg']))
+  await page.evaluate(file => window.wallpaperPropertyListener.userDirectoryFilesRemoved('imagedirectory', [file]), files[0])
   await expect(page.getByTestId('source-count')).toHaveText('149')
-  await page.evaluate(() => window.wallpaperPropertyListener.userDirectoryFilesAddedOrChanged('imagedirectory', ['C:/Album/1.JPG']))
+  await page.evaluate(file => window.wallpaperPropertyListener.userDirectoryFilesAddedOrChanged('imagedirectory', [file]), files[1])
   await expect(page.getByTestId('source-count')).toHaveText('149')
   await page.getByText('Simulate Wallpaper Engine events').click()
   await page.getByLabel('Host FPS limit').fill('0')
   await page.getByRole('button', { name: 'Pause host' }).click()
-  await expect(page.getByRole('status')).toHaveText('Host paused · Uncapped')
+  await expect(page.locator('.preview-status')).toHaveText('Host paused · Uncapped')
   await page.getByRole('button', { name: 'Resume host' }).click()
-  await expect(page.getByRole('status')).toHaveText('Host running · Uncapped')
+  await expect(page.locator('.preview-status')).toHaveText('Host running · Uncapped')
+  await expect(page.locator('main')).toHaveAttribute('data-phase', 'ready')
+  const prefix = pathToFileURL(folder).href + '/'
+  const loaded = new Set(diagnostics.requests.filter(url => url.startsWith(prefix)))
+  expect(loaded.size).toBeGreaterThan(0)
+  expect(loaded.size).toBeLessThanOrEqual(4)
   await diagnostics.check()
 })
 
@@ -63,12 +75,14 @@ test('single file imports stay session-local, preserve names, and revoke replace
   await input.setInputFiles(file)
   await expect(page.getByTestId('source-count')).toHaveText('1')
   await expect(page.getByRole('listitem')).toHaveText(file.name)
+  await expect(page.locator('main')).toHaveAttribute('data-current', file.name)
   await input.setInputFiles(file)
   expect(await page.evaluate(() => ({ created: window.__testUrls.created.length, revoked: window.__testUrls.revoked.length }))).toEqual({ created: 2, revoked: 1 })
   await page.getByLabel('Image source', { exact: true }).selectOption('samples')
   await expect(page.getByTestId('source-count')).toHaveText('4')
   await page.getByLabel('Image source', { exact: true }).selectOption('image')
   await expect(page.getByTestId('source-count')).toHaveText('1')
+  await expect(page.locator('main')).toHaveAttribute('data-phase', 'ready')
   await page.screenshot({ path: testInfo.outputPath('single-preview.png') })
   await diagnostics.check()
   await page.reload()
@@ -87,6 +101,7 @@ test('folder input filters non-images, accepts reselection, and fits a portrait 
   const input = page.getByLabel('Choose folder', { exact: true })
   await input.setInputFiles(folder)
   await expect(page.getByTestId('source-count')).toHaveText('2')
+  await expect(page.locator('main')).toHaveAttribute('data-current', 'Album Ω #/first.JPG')
   await expect(page.getByRole('listitem')).toHaveCount(2)
   await expect(page.getByRole('listitem').first()).toContainText('Album Ω #/')
   await input.setInputFiles(folder)

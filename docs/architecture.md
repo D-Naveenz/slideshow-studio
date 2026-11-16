@@ -2,7 +2,7 @@
 
 ## Current state and target
 
-The Vite migration and dependency updates are complete. The application displays a static sample and builds a local wallpaper package with a buffered host callback bridge, validated settings, and an image catalogue. A development panel supports browser imports and mock host events without eager decoding. Playback, rendering effects, and saved overlay settings below remain the approved target design. See [implementation status](implementation-plan.md).
+The Vite migration and dependency updates are complete. The application now plays a slideshow through a bounded preparation worker and an instant-swap Fill canvas renderer, with validated host settings and source catalogues. A development panel supports imports, playback controls, and mock host events. Transitions, WebGL, Fit/blur, and the end-user overlay below remain the approved target design. See [implementation status](implementation-plan.md).
 
 Retain Vite, React, TypeScript, React Compiler, and Oxlint. Node runs development and build tools only. The final wallpaper package will contain `index.html`, local JavaScript/CSS/assets, sample images, and `project.json` in `dist/`. Use relative asset references and a classic JavaScript bundle to avoid runtime module imports. No external fonts, CDN dependencies, runtime server, or required network access.
 
@@ -20,11 +20,23 @@ The bridge connects to `WallpaperRuntime` before React mounts. Browser tests sim
 
 `settings.ts` defines stable lowercase property keys, runtime types, defaults, slider bounds, options, and display conditions. `settingsPatch` accepts only known own properties, preserves missing values, rejects malformed types/options, clamps sliders, and converts host color channels to hex. `projectProperties` generates matching host definitions. The keys are `source`, `imagefile`, `imagedirectory`, `holdseconds`, `transition`, `transitionseconds`, `shuffle`, `fit`, `background`, `backgroundcolor`, `blur`, and `controls`.
 
-`WallpaperRuntime` exposes immutable cached snapshots and subscriptions for React through `useSyncExternalStore`. It consumes buffered/live events, retains the last valid FPS (initially 30; zero means uncapped), and stores host pause state. Property changes are incremental. Rendering effects, playback suspension, and saved overrides will consume this state in later batches.
+`WallpaperRuntime` exposes immutable cached snapshots and subscriptions for React through `useSyncExternalStore`. It consumes buffered/live events, retains the last valid FPS (initially 30; zero means uncapped), and stores host pause state. Property changes are incremental. The playback controller consumes source, timing, shuffle, and pause changes. Animated frame pacing and saved overrides follow in later batches.
 
 `ImageCatalogue` stores image IDs, names, URLs, and revisions only. It retains native directory references while another source is selected, updates revisions for modified files, and removes entries by canonical identity. Windows drive and UNC identities are case-insensitive; POSIX identities retain case. Raw paths encode literal URL-reserved characters; already encoded `file://` URLs retain their escaping. Relative paths and non-file URL schemes are rejected. When directory location properties are available, replacement retains entries already received for the new root and excludes old-root entries; `fetchall` change/removal callbacks also work without a directory location value.
 
-Browser imports own session object URLs and release them on replacement, clearing, disposal, or failed partial import. Selecting a source does not decode or fetch its imported images. The development preview is enabled by Vite dev mode or `?preview=1`; normal production hides it. Its source/FPS/pause mocks use the real global host callbacks. It is separate from the end-user settings overlay planned for batch 6.
+Browser imports own session object URLs and release them on replacement, clearing, disposal, or failed partial import. The catalogue never decodes images; the playback worker requests only the current and neighboring entries. The development preview is enabled by Vite dev mode or `?preview=1`; normal production hides it. Its source/timing/shuffle/FPS/pause mocks use the real global host callbacks. It is separate from the end-user settings overlay planned for batch 6.
+
+## Implemented playback boundary
+
+`PlaybackController` subscribes to runtime inputs outside React. Its single async worker handles initial selection, coalesced navigation, and neighbor prefetch. Generation checks and abort signals invalidate stale work, and a replacement preparation cannot start until the previous preparation promise settles. Changed revisions become eligible again; failed revisions are removed from the available order without repeated timer retries.
+
+`PlaybackOrder` naturally sorts names, maintains a shuffled bag with no cycle-boundary repeat, and keeps actual visit history (up to 512 entries). Catalogue or shuffle changes reconfigure the cycle while retaining valid current/history entries. `HoldClock` and an injectable scheduler preserve remaining holds through overlapping host, user, and document-visibility pauses. Manual navigation resets the hold; automatic playback waits for readiness and never catches up a queue of missed slides.
+
+`ResourceCache` reserves the in-flight slot as part of its three-slide limit before preparation starts. Priority is current, requested incoming, next, then previous; older history is evicted first. Each prepared canvas is bounded by useful screen resolution, a side limit, and a third of the available prepared-resource budget. The estimate reserves 48 MiB for rendering, then accounts eight bytes per prepared pixel within 256 MiB total. These are conservative owned-resource estimates, excluding native browser decode/cache allocations.
+
+`prepareImage` uses asynchronous image loading/decoding with cancellation and a 30-second timeout that clears the source; it downsamples to a retained canvas and releases the source image reference. Native file requests include a revision query token so modification callbacks cannot silently reuse a previous browser-cached image. Preparation is serialized even if a custom loader ignores cancellation. Cache eviction resets prepared canvas dimensions. Resize keeps the current image while re-preparing it and clears the old backing store before assigning new dimensions to avoid oversized intermediate allocations. Source removal/clearing releases invalid prepared resources. Disposal unsubscribes inputs, cancels timers/loads, and releases late results.
+
+The current `CanvasRenderer` draws only when invalidated and uses cover geometry for every image, regardless of the future Fit setting. The backing display canvas is capped at 8,388,608 pixels and an 8192-pixel side length. There are no transitions or continuous animation frames yet. Its small renderer interface keeps drawing/resource ownership separate for the WebGL work in batch 5.
 
 ## Responsibilities and data flow
 
@@ -54,7 +66,7 @@ Browser preview provides file/folder selection and mock host events. Wallpaper E
 
 ## Rendering and playback
 
-WebGL is the primary renderer. Reuse image textures for foreground and background; produce the covered background through reduced-resolution separable blur passes. Fit contains the sharp foreground; Fill covers the viewport. Fit backgrounds can be blurred image copies or a solid color.
+In batch 5, WebGL becomes the primary renderer. Reuse image textures for foreground and background; produce the covered background through reduced-resolution separable blur passes. Fit contains the sharp foreground; Fill covers the viewport. Fit backgrounds can be blurred image copies or a solid color.
 
 Provide fade, slide, and instant transitions. Image hold time begins after a transition completes; manual navigation restarts it. Pause/resume preserves remaining playback time without catching up missed slides.
 

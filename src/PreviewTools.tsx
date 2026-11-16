@@ -3,8 +3,11 @@ import type { ChangeEvent } from 'react'
 import type { WallpaperRuntime, WallpaperSnapshot } from './wallpaper/runtime.ts'
 import type { ImportKind } from './wallpaper/catalogue.ts'
 import type { Settings } from './wallpaper/settings.ts'
+import type { PlaybackController, PlaybackSnapshot } from './slideshow/controller.ts'
 
-export function PreviewTools({ runtime, snapshot }: { runtime: WallpaperRuntime; snapshot: WallpaperSnapshot }) {
+export function PreviewTools({ runtime, snapshot, playback, playing }: {
+  runtime: WallpaperRuntime; snapshot: WallpaperSnapshot; playback: PlaybackController; playing: PlaybackSnapshot
+}) {
   const [error, setError] = useState('')
   const { settings, images } = snapshot
   function importFiles(kind: ImportKind, event: ChangeEvent<HTMLInputElement>) {
@@ -19,7 +22,7 @@ export function PreviewTools({ runtime, snapshot }: { runtime: WallpaperRuntime;
       <header>
         <p className="eyebrow">Development preview</p>
         <h2>Image sources</h2>
-        <p>Inspect your selection here. Playback arrives in the next batch; the background stays on the sample.</p>
+        <p>Instant slideshow playback. Transition effects and the desktop toolbar arrive in later batches.</p>
       </header>
       <div className="preview-field">
         <label htmlFor="preview-source">Image source</label>
@@ -39,12 +42,28 @@ export function PreviewTools({ runtime, snapshot }: { runtime: WallpaperRuntime;
       </div>
       {error ? <p role="alert">{error}</p> : null}
       <section aria-label="Selected images" className="preview-catalogue">
-        <p><strong data-testid="source-count">{images.length}</strong> image {images.length === 1 ? 'reference' : 'references'} · not decoded</p>
+        <p><strong data-testid="source-count">{images.length}</strong> image {images.length === 1 ? 'reference' : 'references'}</p>
         {images.length ? <ul>{images.slice(0, 4).map(image => <li key={image.id}>{image.name}</li>)}</ul> : <p>No images selected. Choose an image or folder to begin.</p>}
         {images.length > 4 ? <p>And {images.length - 4} more.</p> : null}
       </section>
+      <section aria-label="Playback preview" className="preview-playback">
+        <p>Showing: <output data-testid="current-image">{playing.current?.name || 'None'}</output></p>
+        <p data-testid="playback-cache" data-cached={playing.cached} data-bytes={playing.estimatedBytes}>
+          {playing.cached} prepared slides · {(playing.estimatedBytes / 1024 / 1024).toFixed(1)} MiB estimated, including render reserve
+        </p>
+        <p>{playing.preparing ? 'Preparing an image…' : playing.paused ? 'Playback paused' : 'Playback ready'}{playing.failed ? ` · ${playing.failed} skipped` : ''}</p>
+        <div className="preview-navigation">
+          <button type="button" onClick={playback.previous} disabled={!playing.canPrevious || playing.navigating}>Previous image</button>
+          <button type="button" onClick={playback.togglePause}>{playing.userPaused ? 'Resume playback' : 'Pause playback'}</button>
+          <button type="button" onClick={playback.next} disabled={!playing.canNext || playing.navigating}>Next image</button>
+        </div>
+      </section>
       <details>
         <summary>Simulate Wallpaper Engine events</summary>
+        <label className="preview-field">Image hold time (seconds)
+          <input type="number" min="1" max="3600" value={settings.holdseconds} onChange={event => window.wallpaperPropertyListener.applyUserProperties({ holdseconds: { value: event.currentTarget.valueAsNumber } })} />
+        </label>
+        <label className="preview-checkbox"><input type="checkbox" checked={settings.shuffle} onChange={event => window.wallpaperPropertyListener.applyUserProperties({ shuffle: { value: event.currentTarget.checked } })} /> Shuffle images</label>
         <label className="preview-field">Host FPS limit
           <input type="number" min="0" value={snapshot.fps} onChange={event => window.wallpaperPropertyListener.applyGeneralProperties({ fps: event.currentTarget.valueAsNumber })} />
         </label>
