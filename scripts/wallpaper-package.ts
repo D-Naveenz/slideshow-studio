@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import type { Plugin } from 'vite'
+import { projectProperties } from '../src/wallpaper/settings.ts'
 
 /** Use the same HTML in dev and production, replacing only the development entry. */
 export function wallpaperPackage(): Plugin {
@@ -29,6 +30,10 @@ export function wallpaperPackage(): Plugin {
             .replace(moduleEntry, `<script src="./${entry.fileName}"></script>`),
         })
         this.emitFile({ type: 'asset', fileName: 'LICENSE.txt', source: readFileSync(new URL('../LICENSE.txt', import.meta.url)) })
+        const project = JSON.parse(readFileSync(new URL('../project.json', import.meta.url), 'utf8'))
+        this.emitFile({ type: 'asset', fileName: 'project.json', source: JSON.stringify({
+          ...project, general: { ...project.general, properties: projectProperties() },
+        }, null, 2) + '\n' })
       },
     },
   }

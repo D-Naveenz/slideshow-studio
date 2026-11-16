@@ -37,18 +37,13 @@ for (const viewport of [{ width: 1280, height: 720 }, { width: 390, height: 844 
     await expect(image).toHaveCSS('object-fit', 'cover')
     expect(await page.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }))).toEqual(viewport)
 
-    const events = await page.evaluate(() => {
-      const received = []
-      const disconnect = window.wallpaperBridge.connect(event => received.push(event))
-      window.wallpaperPropertyListener.applyUserProperties({ example: { value: false } })
-      disconnect()
-      return received
-    })
-    expect(events).toEqual([
-      { type: 'general-properties', properties: { fps: 24 } },
-      { type: 'paused', paused: true },
-      { type: 'user-properties', properties: { example: { value: false } } },
-    ])
+    const shell = page.locator('.wallpaper-shell')
+    await expect(shell).toHaveAttribute('data-fps', '24')
+    await expect(shell).toHaveAttribute('data-paused', 'true')
+    await page.evaluate(() => window.wallpaperPropertyListener.applyUserProperties({ source: { value: 'image' } }))
+    await expect(shell).toHaveAttribute('data-source', 'image')
+    await page.evaluate(() => window.wallpaperPropertyListener.applyUserProperties({ source: { value: 'samples' } }))
+    await expect(shell).toHaveAttribute('data-source', 'samples')
     expect(await page.locator('script[type="module"], link[rel="modulepreload"]').count()).toBe(0)
     expect(remote).toEqual([]); expect(failures).toEqual([]); expect(errors).toEqual([])
     await page.screenshot({ path: testInfo.outputPath('package.png') })

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { test } from 'node:test'
 import { Script } from 'node:vm'
 import { parseSync, traverse } from '@babel/core'
+import { defaults, projectProperties } from '../../src/wallpaper/settings.ts'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const dist = resolve(root, 'dist')
@@ -22,7 +23,9 @@ test('metadata points to packaged HTML and preview; licenses are included', () =
   assert.equal(project.type, 'web')
   assert.equal(project.file, 'index.html')
   assert.equal(project.title, 'Slideshow Studio')
-  assert.deepEqual(project.general.properties, {})
+  assert.deepEqual(project.general.properties, projectProperties())
+  assert.deepEqual(Object.keys(project.general.properties).sort(), Object.keys(defaults).sort())
+  assert.equal(project.general.properties.imagedirectory.mode, 'fetchall')
   localAsset(project.file); localAsset(project.preview)
   assert.ok(read('LICENSE.txt').includes('GNU GENERAL PUBLIC LICENSE'))
   assert.ok(read('THIRD-PARTY-LICENSES.md').includes('react'))

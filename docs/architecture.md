@@ -2,7 +2,7 @@
 
 ## Current state and target
 
-The Vite migration and dependency updates are complete. The application now displays a static sample and builds a local wallpaper package with a buffered host callback bridge. Playback, settings, and rendering features below describe the approved target design and are not yet implemented. See [implementation status](implementation-plan.md).
+The Vite migration and dependency updates are complete. The application displays a static sample and builds a local wallpaper package with a buffered host callback bridge, validated settings, and an image catalogue. A development panel supports browser imports and mock host events without eager decoding. Playback, rendering effects, and saved overlay settings below remain the approved target design. See [implementation status](implementation-plan.md).
 
 Retain Vite, React, TypeScript, React Compiler, and Oxlint. Node runs development and build tools only. The final wallpaper package will contain `index.html`, local JavaScript/CSS/assets, sample images, and `project.json` in `dist/`. Use relative asset references and a classic JavaScript bundle to avoid runtime module imports. No external fonts, CDN dependencies, runtime server, or required network access.
 
@@ -10,11 +10,21 @@ The wallpaper fills its viewport, including unusual aspect ratios, without scrol
 
 ## Implemented packaging boundary
 
-Vite builds the React entry in IIFE library mode. A build-only plugin emits production HTML from the development HTML template after stylesheet generation, replacing the module entry with a classic script and adding the emitted stylesheet. The public directory supplies project metadata, the synchronous bridge, favicon, and sample images. Builds also include project and bundled-dependency licenses.
+Vite builds the React entry in IIFE library mode. A build-only plugin emits production HTML from the development HTML template after stylesheet generation, replacing the module entry with a classic script and adding the emitted stylesheet. The public directory supplies the synchronous bridge, favicon, and sample images. The root `project.json` supplies project metadata; the plugin generates its user properties from the runtime's settings definitions. Builds also include project and bundled-dependency licenses.
 
 `public/wallpaper-bridge.js` installs `window.wallpaperPropertyListener` from the document head before the app entry runs. Its typed contract is in `src/wallpaper/bridge.d.ts`. It queues user/general properties, pause changes, and directory changes/removals until one consumer calls `window.wallpaperBridge.connect(consumer)`. Connection drains queued events synchronously in arrival order; its returned function disconnects the consumer. Reentrant callbacks stay ordered, repeated bootstrap execution is harmless, and a second simultaneous consumer is rejected.
 
-The bridge is transport only in batch 2: the static app does not consume or apply host settings. The adapter introduced in batch 3 will connect it to settings and catalogue state. Browser tests simulate early host events; real host behavior remains unverified.
+The bridge connects to `WallpaperRuntime` before React mounts. Browser tests simulate early host events; real host behavior remains unverified.
+
+## Implemented settings and catalogue boundary
+
+`settings.ts` defines stable lowercase property keys, runtime types, defaults, slider bounds, options, and display conditions. `settingsPatch` accepts only known own properties, preserves missing values, rejects malformed types/options, clamps sliders, and converts host color channels to hex. `projectProperties` generates matching host definitions. The keys are `source`, `imagefile`, `imagedirectory`, `holdseconds`, `transition`, `transitionseconds`, `shuffle`, `fit`, `background`, `backgroundcolor`, `blur`, and `controls`.
+
+`WallpaperRuntime` exposes immutable cached snapshots and subscriptions for React through `useSyncExternalStore`. It consumes buffered/live events, retains the last valid FPS (initially 30; zero means uncapped), and stores host pause state. Property changes are incremental. Rendering effects, playback suspension, and saved overrides will consume this state in later batches.
+
+`ImageCatalogue` stores image IDs, names, URLs, and revisions only. It retains native directory references while another source is selected, updates revisions for modified files, and removes entries by canonical identity. Windows drive and UNC identities are case-insensitive; POSIX identities retain case. Raw paths encode literal URL-reserved characters; already encoded `file://` URLs retain their escaping. Relative paths and non-file URL schemes are rejected. When directory location properties are available, replacement retains entries already received for the new root and excludes old-root entries; `fetchall` change/removal callbacks also work without a directory location value.
+
+Browser imports own session object URLs and release them on replacement, clearing, disposal, or failed partial import. Selecting a source does not decode or fetch its imported images. The development preview is enabled by Vite dev mode or `?preview=1`; normal production hides it. Its source/FPS/pause mocks use the real global host callbacks. It is separate from the end-user settings overlay planned for batch 6.
 
 ## Responsibilities and data flow
 

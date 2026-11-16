@@ -15,8 +15,8 @@ The Vite migration and dependency upgrade are already committed (`a6bb245` and `
 | Batch | Deliverable and acceptance | Status |
 | --- | --- | --- |
 | 1. 📝 Agent instructions and documentation | Add `AGENTS.md`, architecture/plan docs, and project README. Initialize an existing CodeGraph installation and verify an exploration query. Check documentation and repository changes. | Committed: `23facbd` |
-| 2. 📦 Static wallpaper packaging | Relative local assets, classic JavaScript bundle, minimal project metadata, early buffered callbacks, retained HMR/samples, removed starter branding, focused test infrastructure, and package checks. Verify build, lint, and offline local-file startup. | Prepared; user commit pending |
-| 3. 🔌 Settings and image sources | Typed validated settings and matching properties; partial host/FPS/pause/directory events; sample/image/folder sources; safe local URLs; browser preview imports and mock events. Test buffering, merges, catalogue updates, and path handling. | Pending |
+| 2. 📦 Static wallpaper packaging | Relative local assets, classic JavaScript bundle, minimal project metadata, early buffered callbacks, retained HMR/samples, removed starter branding, focused test infrastructure, and package checks. Verify build, lint, and offline local-file startup. | Committed: `bfac76e` |
+| 3. 🔌 Settings and image sources | Typed validated settings and matching properties; partial host/FPS/pause/directory events; sample/image/folder sources; safe local URLs; browser preview imports and mock events. Test buffering, merges, catalogue updates, and path handling. | Prepared; user commit pending |
 | 4. ▶️ Playback and bounded loading | Natural order, shuffle/history, navigation, timing/pause, three-slide preparation, serialized decoding, resource budget, stale-work disposal, failures/empty sources, and a usable basic viewport renderer. Test timing, history, cache bounds, and load races. | Pending |
 | 5. 🎨 WebGL and background effects | Fade/slide/instant, Fit/Fill, solid/blurred backgrounds, shared textures, reduced-resolution blur, FPS pacing, fallback, and context lifecycle. Test geometry, resize, readiness, fallback, and resource disposal. | Pending |
 | 6. 🎛️ Navigation and settings overlay | Accessible React overlay/toolbar, auto-hide behavior, shortcuts, saved override precedence/reset, disabled controls, and storage failure handling. Test interactions, focus, precedence, and persistence. | Pending |
@@ -56,3 +56,16 @@ Approved behavior and defaults are specified in [architecture.md](architecture.m
 - Final checks passed: `pnpm build`, `pnpm lint`, 7 Node bridge tests, 4 built-package tests, and 3 offline Edge browser tests. Package/browser suites ran against the final build using their underlying runners to avoid redundant builds.
 - Documentation links, documented commands, whitespace, temporary HMR-probe cleanup, and `git diff --check` passed. Final diff review confirmed sample wallpaper files are unchanged and generated build/test/index artifacts remain ignored.
 - Actual Wallpaper Engine import/runtime behavior, host settings application, slideshow playback, and performance/stress checks remain unverified and belong to later batches.
+
+### Batch 3
+
+- Confirmed batch 2 was committed as `bfac76e`; the starting working tree was clean. Synced the existing CodeGraph index before exploration.
+- Added typed settings/validation and generated matching properties in the built `project.json`, using root project metadata. Added partial-property, FPS, pause, and directory-event handling through the early bridge.
+- Added sample/single-image/directory catalogues with safe local URLs, case-aware identities, modification revisions, folder replacement/removal handling, and browser object URL cleanup. Enumeration retains references without eager image requests or decoding.
+- Added a development preview for browser file/folder inputs, source selection, FPS/pause mock events, and received-settings inspection. It is automatically available in Vite dev or explicitly through `?preview=1` in the built package; normal production hides it.
+- Extended Node tests to native TypeScript with a separate strict type-checking project. Added no dependencies or dependency upgrades.
+- Offline browser checks exercised 150 host references without imported image requests, special-character filenames, folder filtering/reselection, session-only imports, replaced-URL cleanup, early events, and portrait/landscape/ultrawide layout. Desktop and portrait preview screenshots were inspected visually.
+- Final checks passed: `pnpm build` (including strict TypeScript test checks), `pnpm lint`, 27 Node unit tests, 4 package tests, and 6 offline Edge browser tests. Package/browser suites ran against the final build using their underlying runners to avoid redundant builds.
+- Development-mode verification passed: the preview panel appears automatically, host updates reach live state, and CSS HMR preserves adapter state. The temporary probe was restored and the development server stopped.
+- Reviewed React subscriptions, hook usage, labels, keyboard-accessible native controls, and preview layout. Documentation/link checks and final diff checks passed; generated artifacts remain ignored and sample images/dependencies are unchanged.
+- Actual Wallpaper Engine behavior, image preparation/playback, rendering effects/FPS pacing, and persistent end-user settings remain for later batches.

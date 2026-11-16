@@ -1,0 +1,8 @@
+{
+  "title": "Slideshow Studio",
+  "description": "A local-image slideshow framework. Image source configuration is available; playback is added in subsequent batches.",
+  "type": "web",
+  "file": "index.html",
+  "preview": "wallpapers/1.jpg",
+  "general": {}
+}
