@@ -2,11 +2,19 @@
 
 ## Current state and target
 
-The Vite migration and dependency updates are complete. The application is currently the React starter, with four bundled sample images. This document records the approved target design; it does not imply that the features below are already implemented. See [implementation status](implementation-plan.md).
+The Vite migration and dependency updates are complete. The application now displays a static sample and builds a local wallpaper package with a buffered host callback bridge. Playback, settings, and rendering features below describe the approved target design and are not yet implemented. See [implementation status](implementation-plan.md).
 
 Retain Vite, React, TypeScript, React Compiler, and Oxlint. Node runs development and build tools only. The final wallpaper package will contain `index.html`, local JavaScript/CSS/assets, sample images, and `project.json` in `dist/`. Use relative asset references and a classic JavaScript bundle to avoid runtime module imports. No external fonts, CDN dependencies, runtime server, or required network access.
 
 The wallpaper fills its viewport, including unusual aspect ratios, without scrollbars or the browser Fullscreen API.
+
+## Implemented packaging boundary
+
+Vite builds the React entry in IIFE library mode. A build-only plugin emits production HTML from the development HTML template after stylesheet generation, replacing the module entry with a classic script and adding the emitted stylesheet. The public directory supplies project metadata, the synchronous bridge, favicon, and sample images. Builds also include project and bundled-dependency licenses.
+
+`public/wallpaper-bridge.js` installs `window.wallpaperPropertyListener` from the document head before the app entry runs. Its typed contract is in `src/wallpaper/bridge.d.ts`. It queues user/general properties, pause changes, and directory changes/removals until one consumer calls `window.wallpaperBridge.connect(consumer)`. Connection drains queued events synchronously in arrival order; its returned function disconnects the consumer. Reentrant callbacks stay ordered, repeated bootstrap execution is harmless, and a second simultaneous consumer is rejected.
+
+The bridge is transport only in batch 2: the static app does not consume or apply host settings. The adapter introduced in batch 3 will connect it to settings and catalogue state. Browser tests simulate early host events; real host behavior remains unverified.
 
 ## Responsibilities and data flow
 

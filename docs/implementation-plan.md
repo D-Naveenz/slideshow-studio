@@ -14,8 +14,8 @@ The Vite migration and dependency upgrade are already committed (`a6bb245` and `
 
 | Batch | Deliverable and acceptance | Status |
 | --- | --- | --- |
-| 1. 📝 Agent instructions and documentation | Add `AGENTS.md`, architecture/plan docs, and project README. Initialize an existing CodeGraph installation and verify an exploration query. Check documentation and repository changes. | Prepared; user commit pending |
-| 2. 📦 Static wallpaper packaging | Relative local assets, classic JavaScript bundle, minimal project metadata, early buffered callbacks, retained HMR/samples, removed starter branding, focused test infrastructure, and package checks. Verify build, lint, and offline local-file startup. | Pending |
+| 1. 📝 Agent instructions and documentation | Add `AGENTS.md`, architecture/plan docs, and project README. Initialize an existing CodeGraph installation and verify an exploration query. Check documentation and repository changes. | Committed: `23facbd` |
+| 2. 📦 Static wallpaper packaging | Relative local assets, classic JavaScript bundle, minimal project metadata, early buffered callbacks, retained HMR/samples, removed starter branding, focused test infrastructure, and package checks. Verify build, lint, and offline local-file startup. | Prepared; user commit pending |
 | 3. 🔌 Settings and image sources | Typed validated settings and matching properties; partial host/FPS/pause/directory events; sample/image/folder sources; safe local URLs; browser preview imports and mock events. Test buffering, merges, catalogue updates, and path handling. | Pending |
 | 4. ▶️ Playback and bounded loading | Natural order, shuffle/history, navigation, timing/pause, three-slide preparation, serialized decoding, resource budget, stale-work disposal, failures/empty sources, and a usable basic viewport renderer. Test timing, history, cache bounds, and load races. | Pending |
 | 5. 🎨 WebGL and background effects | Fade/slide/instant, Fit/Fill, solid/blurred backgrounds, shared textures, reduced-resolution blur, FPS pacing, fallback, and context lifecycle. Test geometry, resize, readiness, fallback, and resource disposal. | Pending |
@@ -43,3 +43,16 @@ Approved behavior and defaults are specified in [architecture.md](architecture.m
 - Local documentation links, documented package scripts, whitespace, and the exact Git Workflow Rule were checked successfully. `git diff --check` passed.
 - Repository review confirmed only the README, agent instructions, project docs, and CodeGraph ignore file are included in this batch. The generated database is ignored and untracked; application code and dependencies are unchanged.
 - Wallpaper Engine runtime, slideshow behavior, offline packaging, automated feature tests, and stress/performance checks are not implemented or verified in this batch.
+
+### Batch 2
+
+- Confirmed batch 1 was committed as `23facbd`; the starting working tree was clean.
+- Configured Vite to output a classic IIFE bundle and relative assets, with generated production HTML, minimal web project metadata, local favicon, and license files. Kept all four sample images intact and replaced starter branding with a static sample screen.
+- Added a synchronous, typed callback bridge that queues events before a consumer connects, preserves partial updates and reentrant ordering, and supports cleanup/reconnection.
+- Added Node unit/package tests and Playwright offline browser tests. Playwright is the only new direct dependency, used only for development/testing; existing dependency versions were retained.
+- Verified the built package from a relocated directory containing spaces, Unicode, and `#`, without a server and with browser networking offline. Landscape (1280×720), portrait (390×844), and ultrawide (2560×1080) checks passed with no remote/failed requests or console errors. Checked the landscape screenshot visually.
+- Verified Vite development rendering, local sample loading, and bridge availability; a temporary CSS probe applied through HMR without page reload and was restored afterwards. The development server was stopped after testing.
+- The managed sandbox prevented package-store writes and browser/localhost access; dependency installation and browser checks succeeded using approved escalated execution. No additional browser download was needed; tests used installed Microsoft Edge.
+- Final checks passed: `pnpm build`, `pnpm lint`, 7 Node bridge tests, 4 built-package tests, and 3 offline Edge browser tests. Package/browser suites ran against the final build using their underlying runners to avoid redundant builds.
+- Documentation links, documented commands, whitespace, temporary HMR-probe cleanup, and `git diff --check` passed. Final diff review confirmed sample wallpaper files are unchanged and generated build/test/index artifacts remain ignored.
+- Actual Wallpaper Engine import/runtime behavior, host settings application, slideshow playback, and performance/stress checks remain unverified and belong to later batches.
