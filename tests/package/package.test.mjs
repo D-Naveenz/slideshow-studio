@@ -9,6 +9,7 @@ import { defaults, projectProperties } from '../../src/wallpaper/settings.ts'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const dist = resolve(root, 'dist')
+const { version } = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'))
 function read(path) { return readFileSync(resolve(dist, path), 'utf8') }
 function localAsset(url, from = 'index.html') {
   assert.ok(!/^(?:[a-z][\w+.-]*:|\/|\\)/i.test(url), `Expected relative local asset: ${url}`)
@@ -17,6 +18,11 @@ function localAsset(url, from = 'index.html') {
   assert.ok(rel !== '..' && !rel.startsWith('../') && !rel.startsWith('..\\') && !isAbsolute(rel), `Asset escapes package: ${url}`)
   assert.ok(existsSync(target), `Missing packaged asset: ${url}`)
 }
+
+test('package identifies the application release consistently without runtime version requests', () => {
+  assert.deepEqual(JSON.parse(read('version.json')), { name: 'Slideshow Studio', version })
+  assert.ok(read('index.html').includes(`<meta name="application-version" content="${version}"`))
+})
 
 test('metadata points to packaged HTML and preview; licenses are included', () => {
   const project = JSON.parse(read('project.json'))

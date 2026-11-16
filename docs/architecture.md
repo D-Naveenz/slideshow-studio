@@ -1,10 +1,10 @@
 # Wallpaper framework architecture
 
-## Current state and target
+## v1.0 architecture
 
-The Vite migration and dependency updates are complete. The application plays a slideshow through a bounded preparation worker and PixiJS WebGL renderer, with Canvas2D fallback, fade/slide/instant transitions, Fit/Fill sizing, and solid/blurred backgrounds. Validated host settings and source catalogues drive playback. A React toolbar and accessible settings dialog provide end-user controls and persisted appearance/playback overrides. A separate development panel supports imports and mock host events. Final native integration and photographic stress measurements remain batch 7. See [implementation status](implementation-plan.md).
+The application plays a slideshow through a bounded preparation worker and PixiJS WebGL renderer, with Canvas2D fallback, fade/slide/instant transitions, Fit/Fill sizing, and solid/blurred backgrounds. Validated host settings and source catalogues drive playback. A React toolbar and accessible settings dialog provide end-user controls and persisted appearance/playback overrides. A separate development panel supports imports and mock host events. See [verification results](verification.md) for measured raster stress results and the boundaries of native acceptance.
 
-Retain Vite, React, TypeScript, React Compiler, and Oxlint. Node runs development and build tools only. The final wallpaper package will contain `index.html`, local JavaScript/CSS/assets, sample images, and `project.json` in `dist/`. Use relative asset references and a classic JavaScript bundle to avoid runtime module imports. No external fonts, CDN dependencies, runtime server, or required network access.
+Retain Vite, React, TypeScript, React Compiler, and Oxlint. Node runs development and build tools only. The wallpaper package contains `index.html`, local JavaScript/CSS/assets, sample images, `project.json`, and `version.json` in `dist/`. Relative asset references and a classic JavaScript bundle avoid runtime module imports. No external fonts, CDN dependencies, runtime server, or required network access.
 
 The wallpaper fills its viewport, including unusual aspect ratios, without scrollbars or the browser Fullscreen API.
 
@@ -95,10 +95,16 @@ Support Left/Right for navigation, Space for play/pause, S for settings, and Esc
 
 `SettingsPreferences` persists an allowlist of hold/transition/shuffle/fit/background/color/blur values under `slideshow-studio.preferences.v1`, with a versioned JSON envelope and shared validation. Startup precedence is defaults → Wallpaper Engine values → saved overrides. All events drained synchronously during bridge connection preserve overrides; the first valid later host event also counts as initial settings if none were buffered. Subsequent values that differ from the last host values clear corresponding overrides and update storage. Repeated or unrelated host values preserve them. Reset removes overrides and restores the latest host values.
 
-Native source/image/folder selection, the master controls switch, and pause state are never persisted by the overlay. Getter/write/removal failures and corrupt or unknown-version records leave session operation usable. Local storage scope depends on browser origin/profile; file-package moves and different hosts may expose different records. Native storage/input behavior remains to be verified in batch 7.
+Native source/image/folder selection, the master controls switch, and pause state are never persisted by the overlay. Getter/write/removal failures and corrupt or unknown-version records leave session operation usable. Local storage scope depends on browser origin/profile; file-package moves and different hosts may expose different records. Native storage/input behavior has the verification limits listed in [verification.md](verification.md).
+
+## Application version
+
+`package.json.version` is read by Vite at configuration time. Vite replaces `__APP_VERSION__` with that literal in both development and production; `src/version.ts` exports it for the settings footer and root diagnostic attribute. Packaging emits the same version in `version.json` and an HTML `application-version` meta tag. Runtime code neither imports Node/package files nor fetches a version service. Version awareness identifies the running build; it does not implement an updater. Preference storage retains its independent schema version.
 
 ## Verification boundaries
 
-Each code batch must pass build, lint, and relevant tests. Verify browser behavior and the built local-file package separately from real Wallpaper Engine behavior. Final integration covers offline startup without Node, native properties, directory updates, pause/FPS handling, input forwarding, multiple aspect ratios, large images, and context loss.
+Code changes must pass build, lint, and relevant tests. Verify browser behavior and the built local-file package separately from real Wallpaper Engine behavior. Native acceptance covers offline startup without Node, native properties, directory updates, pause/FPS handling, input forwarding, multiple aspect ratios, large images, and context loss; report confirmed and unverified scenarios separately.
 
 Measure resource/frame behavior on the actual test system, document unverified scenarios, and avoid hardware-independent performance claims.
+
+Known desktop usability issue: the bottom-centered toolbar is partly covered by the Windows taskbar in the user's desktop screenshot despite fitting in the editor preview. Its placement needs future desktop-specific review; the user deferred implementation. See [native desktop lessons](desktop-lessons.md) for the evidence, proposed acceptance checks, import/update distinctions, and verification guidance.

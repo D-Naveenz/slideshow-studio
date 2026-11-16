@@ -9,17 +9,20 @@ pnpm install
 pnpm build
 ```
 
-The wallpaper is the contents of `dist/`: HTML, classic JavaScript, CSS, callback bridge, `project.json`, sample images, favicon, and license notices. Keep these together. Ship only this folder, not source files, `node_modules`, or test fixtures. Node, pnpm, and a server are unnecessary on the playback machine.
+The wallpaper is the contents of `dist/`: HTML, classic JavaScript, CSS, callback bridge, `project.json`, `version.json`, sample images, favicon, and license notices. Keep these together. Ship only this folder, not source files, `node_modules`, or test fixtures. Node, pnpm, and a server are unnecessary on the playback machine. Find the running version at the bottom of the settings dialog; `version.json` identifies a built package without running it. See [release guidance](releases.md).
 
-1. Open Wallpaper Engine and choose **Create Wallpaper** in its editor.
-2. Select or drag `dist/index.html` into the web wallpaper import flow. Import the complete built folder, including `project.json` and the `wallpapers` subfolder.
-3. In the imported project directory, confirm `project.json` retains the generated `general.properties` definitions. If the editor generated replacement metadata, merge the built metadata/properties into that project and reopen it. Keep the editor's project identity fields if it assigned any.
-4. Check the settings panel lists Image source, timing, transitions, shuffle, sizing, backgrounds, and the controls switch. Begin with bundled samples before selecting external images.
-5. After rebuilding, update the imported copy with the new build. The editor's project copy does not automatically follow repository builds. Keep a backup of editor-managed metadata before replacing files.
+1. Open Wallpaper Engine's main window and click **Wallpaper Editor**.
+2. In the editor's welcome/new-project window, drag `dist/index.html` onto **Create Wallpaper**.
+3. In **New Web Wallpaper**, set the project name (for example, **Slideshow Studio**) and review the imported files. The editor imports the whole `dist/` folder, including local scripts, styles, metadata, licenses, and sample wallpapers. Click **OK**.
+4. Wait for the wallpaper to render in the editor preview and for automatic saving to finish. Adjust the project title/configuration as needed, then close the editor.
+5. Find **Slideshow Studio** in the main window. Its custom properties appear on the right, including source, timing, transitions, shuffle, sizing, backgrounds, and the controls switch.
+6. Click the new wallpaper to apply it. Begin with bundled samples before selecting external images.
 
-The import sequence above remains a host acceptance procedure, not a claim that the final editor import was verified. See [the verification matrix](verification.md). Wallpaper Engine documents its [web project workflow](https://docs.wallpaperengine.io/en/web/first/gettingstarted.html) and [custom properties](https://docs.wallpaperengine.io/en/web/customization/properties.html).
+This editor import/application flow is user-confirmed in [the screenshot evidence](evidence/README.md), including imported files, editor preview/toolbar, installed project/native properties, and desktop display. See [the verification record](verification.md) for the limits of that evidence. Wallpaper Engine documents its [web project workflow](https://docs.wallpaperengine.io/en/web/first/gettingstarted.html) and [custom properties](https://docs.wallpaperengine.io/en/web/customization/properties.html).
 
-For a direct local check without editor copying, use **Open Wallpaper → Open offline wallpaper** and select `dist/index.html`. Its adjacent `project.json` supplies the custom properties. Right-click the local HTML entry and choose **Play in Window → Full HD Preview** for a separate window. This native opening flow and several property display conditions were verified; rendering/capture remains unresolved on the test host. Do not choose `project.json` in this offline-file picker: it was classified as a local scene rather than a web wallpaper.
+The command-line controls for opening/controlling wallpapers do not perform this editor project-creation/import workflow. Direct offline-file opening and pop-out previews are also separate flows; they were not a substitute for verifying the editor import. Do not use the earlier black pop-out captures as evidence that this correctly imported project fails to render.
+
+After rebuilding, update the editor's imported copy with the new build. It does not automatically follow repository builds. Back up editor-managed metadata and retain project identity fields. If properties are missing after an update, confirm `project.json` retains the generated `general.properties` definitions.
 
 ## Choose images
 
@@ -35,7 +38,7 @@ Defaults are a 30-second hold followed by a one-second fade, natural filename or
 
 **Fill** covers the viewport by cropping. **Fit** keeps the full image visible and fills remaining space with either a solid color or a blurred covered duplicate. Blur strength is measured in screen pixels; it is processed at reduced resolution. Instant transitions ignore transition duration. Shuffle visits all available entries before repeating and previous navigation follows actual visits.
 
-Move the pointer to reveal the toolbar. It hides after three seconds, stays visible during hover/focus or an open dialog, and reveals when tabbed to. The native controls switch hides it and disables its shortcuts. Left/Right navigate, Space toggles user pause, S opens settings, and Escape dismisses settings where the host forwards input. Native desktop keyboard forwarding is unverified; use pointer controls and host properties when keys are unavailable. Do not change operating-system or application security settings to enable shortcuts.
+Move the pointer to reveal the toolbar. It hides after three seconds, stays visible during hover/focus or an open dialog, and reveals when tabbed to. Known v1.0 issue: it can sit partly behind the Windows taskbar; its positioning fix is deferred. The native controls switch hides it and disables its shortcuts. Left/Right navigate, Space toggles user pause, S opens settings, and Escape dismisses settings where the host forwards input. Native desktop keyboard forwarding is unverified; use pointer controls and host properties when keys are unavailable. Do not change operating-system or application security settings to enable shortcuts.
 
 The settings dialog saves playback/appearance overrides locally. Initial host settings load beneath saved overrides. A later changed host value clears its matching override; unrelated values remain. Reset restores the latest host values. Source paths, the master switch, and pause state are never saved by the overlay. If storage is blocked/full, controls work for the current session. Persistence can differ across host profiles and package locations.
 

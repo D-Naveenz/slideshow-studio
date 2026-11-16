@@ -4,7 +4,7 @@ import type { Plugin } from 'vite'
 import { projectProperties } from '../src/wallpaper/settings.ts'
 
 /** Use the same HTML in dev and production, replacing only the development entry. */
-export function wallpaperPackage(): Plugin {
+export function wallpaperPackage(version: string): Plugin {
   return {
     name: 'wallpaper-package',
     apply: 'build',
@@ -26,10 +26,11 @@ export function wallpaperPackage(): Plugin {
           type: 'asset',
           fileName: 'index.html',
           source: template
-            .replace('</head>', `  <link rel="stylesheet" href="./${css[0].fileName}" />\n  </head>`)
+            .replace('</head>', `  <meta name="application-version" content="${version}" />\n  <link rel="stylesheet" href="./${css[0].fileName}" />\n  </head>`)
             .replace(moduleEntry, `<script src="./${entry.fileName}"></script>`),
         })
         this.emitFile({ type: 'asset', fileName: 'LICENSE.txt', source: readFileSync(new URL('../LICENSE.txt', import.meta.url)) })
+        this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ name: 'Slideshow Studio', version }, null, 2) + '\n' })
         const project = JSON.parse(readFileSync(new URL('../project.json', import.meta.url), 'utf8'))
         this.emitFile({ type: 'asset', fileName: 'project.json', source: JSON.stringify({
           ...project, general: { ...project.general, properties: projectProperties() },

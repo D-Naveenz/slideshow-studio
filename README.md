@@ -1,8 +1,8 @@
-# Slideshow Studio
+# Slideshow Studio v1.0
 
 A wallpaper slideshow framework for Wallpaper Engine, built with Vite, React, and TypeScript. The target is a self-contained HTML/CSS/JavaScript wallpaper that fills the viewport, cycles local images, and runs offline without Node.
 
-The current build plays a viewport-filling slideshow with natural ordering, shuffle, bounded image preparation, and fade, slide, or instant transitions. PixiJS renders Fill or Fit images with solid or blurred backgrounds; Canvas2D provides a fallback. A navigation toolbar and accessible settings dialog provide playback and appearance controls, with saved local overrides. Browser preview supports local image/folder selection. Four sample images are included under `public/wallpapers/`. Offline browser checks and a limited native Wallpaper Engine rendering preview have passed; full host integration verification remains pending.
+The current build plays a viewport-filling slideshow with natural ordering, shuffle, bounded image preparation, and fade, slide, or instant transitions. PixiJS renders Fill or Fit images with solid or blurred backgrounds; Canvas2D provides a fallback. A navigation toolbar and accessible settings dialog provide playback and appearance controls, with saved local overrides. Browser preview supports local image/folder selection. Four sample images are included under `public/wallpapers/`. Offline browser checks have passed, and the user confirmed Wallpaper Editor import, native properties, editor preview, and desktop display. Further native interaction/performance checks are listed in the verification report.
 
 ## Development
 
@@ -25,7 +25,7 @@ pnpm preview
 
 ## Wallpaper package
 
-The build outputs `index.html`, `wallpaper.js`, `wallpaper.css`, `wallpaper-bridge.js`, `project.json`, a local favicon, sample images, and license notices. All runtime assets are local and use relative paths. Node and a web server are not needed to open `dist/index.html`.
+The build outputs `index.html`, `wallpaper.js`, `wallpaper.css`, `wallpaper-bridge.js`, `project.json`, `version.json`, a local favicon, sample images, and license notices. All runtime assets are local and use relative paths. Node and a web server are not needed to open `dist/index.html`. The app version comes from `package.json` and appears in the settings footer; see [release/version guidance](docs/releases.md).
 
 For a manual Wallpaper Engine check, build first, then drag **`dist/index.html`** onto **Create Wallpaper** in the editor. Import only the built `dist/` folder, never the repository root or `node_modules`. Wallpaper Engine copies imported files into its project directory; rebuilding this repository does not update that copy automatically.
 
@@ -44,7 +44,9 @@ The settings dialog controls hold time, shuffle, transition/duration, sizing, an
 | S | Open settings |
 | Escape | Close settings |
 
-Shortcuts work only where the host forwards keyboard input. Editing fields and activating buttons retain their native keyboard behavior. Browser tests verify these interactions; native desktop input forwarding remains for the final host verification batch. Use the clickable controls and native properties panel when keyboard events are unavailable.
+Shortcuts work only where the host forwards keyboard input. Editing fields and activating buttons retain their native keyboard behavior. Browser tests verify these interactions; native desktop input forwarding still needs targeted acceptance. Use the clickable controls and native properties panel when keyboard events are unavailable.
+
+Known v1.0 desktop issue: the toolbar can be partly covered by the Windows taskbar despite fitting in the editor preview. Its placement fix is deferred. See [the evidence](docs/evidence/README.md) and [desktop lessons](docs/desktop-lessons.md).
 
 Overlay playback/appearance changes are saved in versioned local storage. Startup resolves defaults → initial host settings → saved overrides. All buffered startup settings, or the first later host settings event, preserve saved overrides. Subsequent host values that change clear matching overrides; unrelated or repeated values preserve them. **Reset to Wallpaper Engine settings** clears all local overrides and restores the latest host values. Image paths, folder selections, the master switch, and pause state are not saved by the overlay.
 
@@ -69,7 +71,7 @@ Supported catalogue extensions are JPEG/JPG, PNG/PNGA, WebP, BMP, GIF, SVG, and 
 - The 256 MiB estimate includes a 112 MiB render reserve for the display, two composed slides, and blur targets, plus conservative eight-bytes-per-pixel prepared allocations (canvas plus GPU source texture). Previous resources are evicted before adding extra candidates; GPU textures are released before their prepared canvases. Browser decoding, native caches, and temporary source allocations are outside this estimate, so it is not a process-memory cap.
 - Failed images are skipped for their current revision without endless retries. Reselecting a source or changing a file makes it eligible again; native file requests use revision tokens to bypass stale image-cache entries. Empty and all-failed selections show a status message. Source changes discard stale results; resizing keeps the old prepared image visible until its replacement is ready.
 
-PixiJS shares each prepared image texture between foreground and background. It composes slides once, blurs backgrounds at reduced resolution, and animates the resulting textures. Frames run only during transitions or invalidation, paced by the host FPS setting (30 FPS in preview by default). Static slides schedule no animation frames. Context loss switches to Canvas2D; restoration rebuilds GPU compositions. Heavy source decoding, texture uploads, and downsampling can still stall on some hardware; full 4K/8K performance measurements belong to the final verification batch.
+PixiJS shares each prepared image texture between foreground and background. It composes slides once, blurs backgrounds at reduced resolution, and animates the resulting textures. Frames run only during transitions or invalidation, paced by the host FPS setting (30 FPS in preview by default). Static slides schedule no animation frames. Context loss switches to Canvas2D; restoration rebuilds GPU compositions. Heavy source decoding, texture uploads, and downsampling can still stall; see [the 4K/8K stress method, measurements, and limits](docs/verification.md).
 
 ## Tests
 
@@ -97,13 +99,15 @@ Screenshots and failure traces are written under the ignored `test-results/` dir
 ## Project documentation
 
 - [Architecture and approved defaults](docs/architecture.md)
-- [Implementation batches and verification status](docs/implementation-plan.md)
+- [v1.0 release notes and versioning](docs/releases.md)
 - [Build/import instructions and troubleshooting](docs/operating-guide.md)
 - [Measured performance and native verification limits](docs/verification.md)
+- [Native desktop lessons and deferred toolbar layout issue](docs/desktop-lessons.md)
+- [Native screenshot evidence](docs/evidence/README.md)
 - [Agent instructions and commit workflow](AGENTS.md)
 - [Wallpaper Engine web API reference](https://docs.wallpaperengine.io/en/web/overview.html)
 
-Development proceeds one batch per user commit. Agents do not commit or push; they stop after verification and wait for `continue` after the user commits.
+When work spans agreed commit batches, agents verify one batch and wait for the user's commit before starting the next. Final batches and standalone tasks end with a normal completion summary, without requesting `continue`. Agents never commit or push.
 
 CodeGraph is initialized locally. Its generated index is ignored by Git; see `AGENTS.md` for exploration commands and the Windows CLI fallback.
 

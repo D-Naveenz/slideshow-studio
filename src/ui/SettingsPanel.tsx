@@ -4,6 +4,7 @@ import { useId } from 'react'
 import type { WallpaperRuntime, WallpaperSnapshot } from '../wallpaper/runtime.ts'
 import { definitions } from '../wallpaper/settings.ts'
 import type { OverlayKey } from '../wallpaper/preferences.ts'
+import { appVersion } from '../version.ts'
 
 export function SettingsPanel({ runtime, snapshot }: { runtime: WallpaperRuntime; snapshot: WallpaperSnapshot }) {
   const { settings, overrides } = snapshot
@@ -51,6 +52,7 @@ export function SettingsPanel({ runtime, snapshot }: { runtime: WallpaperRuntime
         <button type="button" className="reset-button" onClick={runtime.resetOverrides} disabled={!overrides.length}><RotateCcw aria-hidden="true" size={15} />Reset to Wallpaper Engine settings</button>
         {customized('fit') || customized('background') ? <p className="settings-hint">Changes in Wallpaper Engine replace matching local overrides.</p> : null}
         <p className="settings-shortcuts"><kbd>←</kbd> <kbd>→</kbd> Navigate <span>·</span> <kbd>Space</kbd> Pause <span>·</span> <kbd>S</kbd> Settings</p>
+        <p className="settings-hint">Slideshow Studio v{appVersion}</p>
       </footer>
     </Dialog.Content>
   </Dialog.Portal>

@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
+import { readFileSync } from 'node:fs'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
+const { version } = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'))
 const url = pathToFileURL(resolve(root, 'dist/index.html')).href
 const toolbar = page => page.getByRole('group', { name: 'Slideshow controls', includeHidden: true })
 const dialog = page => page.getByRole('dialog', { name: 'Slideshow settings' })
@@ -36,6 +38,8 @@ async function open(page) {
   await page.mouse.move(10, 10)
   await toolbar(page).getByRole('button', { name: 'Open settings' }).click()
   await expect(dialog(page)).toBeVisible()
+  await expect(dialog(page).getByText(`Slideshow Studio v${version}`, { exact: true })).toBeAttached()
+  await expect(page.locator('main')).toHaveAttribute('data-version', version)
 }
 
 test('toolbar navigation and shortcuts work without stealing field/button input', async ({ page }) => {

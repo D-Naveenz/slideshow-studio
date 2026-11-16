@@ -2,7 +2,7 @@
 
 ## Scope
 
-Recorded on 2026-11-16. Implementation batches 1–6 and the scrollbar follow-up are committed; this final batch adds reproducible raster stress checks and operating documentation. The automated package/browser results below apply to the final code. Native acceptance remains partial and must not be inferred from browser mocks.
+v1.0 verification combines automated package/browser checks, raster stress measurements recorded on 2026-11-16, and user-confirmed native editor/desktop evidence. Native acceptance remains scoped to observed scenarios and must not be inferred from browser mocks.
 
 ## Automated checks
 
@@ -11,10 +11,12 @@ Recorded on 2026-11-16. Implementation batches 1–6 and the scrollbar follow-up
 | TypeScript/Vite production build | Passed |
 | Oxlint | Passed |
 | Node unit tests | 52 passed |
-| Built package tests | 4 passed |
+| Built package tests | 5 passed |
 | Offline Edge browser tests | 24 passed |
 | 310-move imported-raster stress run | Passed; PixiJS WebGL |
 | 310-move direct-file raster stress run | Passed; Canvas2D fallback |
+
+Release verification passed build, lint, and 81 automated tests (52 unit, 5 package, 24 browser). Package checks include consistent application version metadata; browser checks include the settings version label and root version diagnostic. The retained raster stress measurements predate the version-label change; the rendering/loading implementation is unchanged and those expensive stress runs were not repeated for version/documentation changes.
 
 The package tests verify local assets, metadata, licenses, unchanged sample files, classic script parsing, and absence of runtime module/Node imports. Browser tests cover relocated packages, landscape/portrait/ultrawide layouts, host callback simulation, imports/catalogue changes, failures, timing, pause, FPS logic, cache bounds, resize, rendered effects, context loss/restoration, texture eviction, and overlay focus/storage/interaction behavior. Browsers use `file://` with networking offline and no web server. Node runs only the test/build driver.
 
@@ -64,26 +66,30 @@ Long tasks and PNG readiness show that large-source work can still stall. These 
 
 ## Native Wallpaper Engine evidence
 
-Batch 5 recorded a successful separate native preview using diagnostic fixtures/callback injection: the PixiJS backend, automatic cycling/fades, and sharp portrait over blurred background were observed. This predates the final overlay/scrollbar changes and did not validate real native property controls.
+### Current confirmed result: editor import and desktop display
 
-For this batch, launched the installed Wallpaper Engine and attempted its documented `openWallpaper` command with both built `project.json` and `index.html`, an explicit named window, and the installation working directory. The main Wallpaper Engine UI opened, but no named wallpaper preview became observable. No final native rendering, properties, persistence, or input result is claimed. A scoped `closeWallpaper` command was issued for the verification window; no desktop wallpaper replacement or global pause command was requested. Diagnostic copies remain ignored under `test-results/native-verification/`.
+On 2026-11-16, the user supplied a step-by-step editor import demonstration and screenshots. They confirm creating a web project by dropping `dist/index.html` onto the editor's **Create Wallpaper** area, importing the full built folder, naming it **Slideshow Studio**, seeing the bundled mountain image and toolbar in the editor preview, finding the saved project with native properties in the main window, and applying it successfully to the desktop.
 
-The official [command-line reference](https://help.wallpaperengine.io/en/functionality/cli.html) describes named windows and scoped property updates. Failure to observe this preview is an environment/host verification limitation; its cause was not established.
+These are user-confirmed native results, not automated observations by the agent. Editor import, native preview rendering, installed-project visibility, native property presence, and desktop application are now confirmed. The screenshots do not establish every transition, directory update, pause/FPS behavior, keyboard forwarding, or storage/performance scenario below. Backend selection is not inferred from the images.
 
-### Follow-up native acceptance attempt
+The earlier attempts below are historical diagnostic results from different opening flows. They did not exercise the required editor project-creation/import workflow, and their black captures do not establish a rendering failure in the correctly imported project.
 
-After commit `2464eeb`, restarted the identified test command process and launched Wallpaper Engine normally. Declined its Safe Start offer to restore previous wallpapers/plugins. Used **Open Wallpaper → Open offline wallpaper** to select the built `index.html`, then **Play in Window → Full HD Preview**. This created an observable native preview window. Opening `project.json` through the offline-file picker instead registered it as a local scene; use the HTML entry for this flow.
+### Diagnostic and evidence boundaries
 
-The native properties panel read the adjacent generated metadata successfully. Observed source choices and conditional single-image selection, the 30-second hold, Fade with one-second duration, shuffle, Fill/Fit, background color, and the controls switch. Fill hid Fit-specific fields; selecting Fit revealed the blurred-image background and 24-pixel blur control. This verifies native panel metadata and those display conditions, not application receipt/rendering of the changes.
+Direct CLI/offline-file/pop-out tests were not the editor project-creation workflow. Some captures were black even for a minimal static HTML probe; the cause was not established. These results cannot establish a failure of the correctly imported wallpaper. Use the editor import process for first installation and reuse the working project for subsequent checks.
 
-The slideshow preview captured as black. A separate minimal HTML page containing only a green background and static text also captured as black in a named native window. Therefore the remaining rendering result cannot be attributed to slideshow code: host presentation or capture is still unresolved. Keyboard, actual directory events, pause/FPS presentation, and native persistence remain unverified. Closed both test windows, returned the main UI selection to the initially selected Particles Ocean entry, and dismissed the UI. The native library retains local `index.html` and `project.json` test registrations; no source files were removed.
+Native panel inspection confirmed source/image display conditions and Fill/Fit background conditions. Read-only installed-file checks confirmed the pre-release project identity, matching then-current JS/CSS/bridge hashes, and an active configuration reference. These checks do not prove that every native event affects the renderer. The version-label build has not been synchronized into the user's installed project.
 
-## Native acceptance checklist still to run
+See the [retained screenshot evidence](evidence/README.md) and [desktop lessons](desktop-lessons.md). Screenshots confirm the visible results and taskbar overlap; they do not identify the backend or prove timing, native storage, frame cadence, or process-memory bounds.
+
+## Further native acceptance checks
+
+Known deferred usability issue: the user's desktop screenshot shows the toolbar partly obscured by the Windows taskbar. Editor preview/browser layout checks did not reveal this. The user requested documentation without a fix; future positioning work must verify complete visibility and clickability around desktop shell surfaces. See [native desktop lessons](desktop-lessons.md).
 
 Use the [operating guide](operating-guide.md) with a temporary imported project. Record actual results and hardware before marking these complete.
 
-- Complete editor import of the final `dist/` package. Direct offline HTML opening and the native property controls/display conditions listed above are verified; editor-managed copy behavior and the remaining conditions still need acceptance.
-- Start without a development server or Node process and with network access unavailable. Confirm the current build renders in the embedded host.
+- Editor import, editor preview, installed-project/native property presence, and desktop display are user-confirmed as described above. Rebuild/update synchronization and any remaining property display conditions still need acceptance.
+- Repeat startup with development servers/Node stopped and network access unavailable. Native rendering is confirmed, but those exact operating conditions were not established by the screenshots.
 - Select a real image and a 150+ image folder in the native panel. Confirm natural order, shuffle, manual history, and finite failed-image skipping.
 - Add, modify, remove, and rename files in that selected folder. Confirm actual native directory notifications and visible updated pixels; test folder replacement/disconnection.
 - Set Fit/Fill, solid/blurred backgrounds, all transitions, and timing in the native panel. Check that changed host values clear matching local overrides.
@@ -94,4 +100,4 @@ Use the [operating guide](operating-guide.md) with a temporary imported project.
 - Inspect the inset scrollbars at top/bottom, focus outlines, small windows, high-DPI displays, and forced-colors mode.
 - Repeat large-photo cycles on the target monitors, including 4K/ultrawide/multiple monitors; monitor the actual host/browser process and GPU memory over a longer run.
 
-Until those checks are recorded, treat the framework as implemented and browser-verified with partial native evidence, rather than fully host-certified.
+The framework is implemented, browser-verified, and user-confirmed to import and display through the native editor/desktop workflow. The remaining checks limit broader host compatibility and performance claims.
