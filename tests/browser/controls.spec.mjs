@@ -84,10 +84,12 @@ test('compact pagination card shows collection position without a filename', asy
   await expect(controls.getByText('Now showing', { exact: true })).toHaveCount(0)
   const layout = await controls.evaluate(element => {
     const css = getComputedStyle(element)
-    return { padding: [css.paddingTop, css.paddingRight, css.paddingBottom, css.paddingLeft], blur: css.backdropFilter, width: element.getBoundingClientRect().width }
+    const glass = getComputedStyle(element, '::before')
+    return { padding: [css.paddingTop, css.paddingRight, css.paddingBottom, css.paddingLeft], blur: glass.backdropFilter, width: element.getBoundingClientRect().width }
   })
   expect(layout.padding).toEqual(['8px', '8px', '8px', '8px'])
-  expect(layout.blur).toBe('blur(12px)')
+  expect(layout.blur).toContain('blur(20px)')
+  expect(layout.blur).toMatch(/saturate\((?:1\.25|125%)\)/)
   expect(layout.width).toBeLessThanOrEqual(200)
   await controls.getByRole('button', { name: 'Next image' }).click()
   await expect(counter).toHaveText('2/4')

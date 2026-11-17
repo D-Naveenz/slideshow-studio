@@ -41,7 +41,7 @@ Fill crops to cover; Fit preserves the image over a solid color or blurred dupli
 
 Move the pointer or Tab to reveal the toolbar. It hides after three seconds unless hovered, focused, or settings are open. Native **Enable navigation and settings overlay** disables controls and shortcuts together. Pending/unavailable navigation is disabled.
 
-The compact dark green acrylic toolbar shows Previous, current/total (for example **3/10**), Pause/Resume, Next and Settings. It does not show a filename. The counter is the image's natural-order position in the selected collection, including when shuffle is enabled; it is not the number of images visited. It shows 0/0 for an empty collection.
+The compact pale green-tinted acrylic toolbar shows Previous, current/total (for example **3/10**), Pause/Resume, Next and Settings. It does not show a filename. The counter is the image's natural-order position in the selected collection, including when shuffle is enabled; it is not the number of images visited. It shows 0/0 for an empty collection.
 
 | Shortcut | Action |
 | --- | --- |

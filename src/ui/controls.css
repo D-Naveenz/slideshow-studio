@@ -10,17 +10,28 @@
 .toolbar-placement[data-position="right"] { align-items: center; justify-content: flex-end; }
 .wallpaper-toolbar {
   /* Acrylic is scoped to the compact toolbar; component spacing/geometry stay stock. */
-  --card: #14251deb; --foreground: #edf4ee; --card-foreground: #edf4ee;
-  --primary: #c8dfc5; --primary-foreground: #15251b; --muted: #354b3d; --ring: #c8dfc5;
-  pointer-events: auto; min-width: 0; max-width: 100%; max-height: 100%; overflow: auto;
+  --card: #f2faf4f5; --foreground: #07130b; --card-foreground: #07130b;
+  --primary: #cfe5d3; --primary-foreground: #183522; --muted: #d9e8dc; --ring: #446c51;
+  position: relative; pointer-events: auto; min-width: 0; max-width: 100%; max-height: 100%; overflow: hidden;
   scrollbar-gutter: auto;
-  backdrop-filter: blur(12px);
 }
-@supports (backdrop-filter: blur(12px)) {
-  .wallpaper-toolbar { --card: #14251dc9; }
+.wallpaper-toolbar > [data-slot="card-content"] {
+  /* Keep controls above the decorative layer and scroll only the controls in tiny viewports. */
+  position: relative; min-height: 0; min-width: 0; overflow: auto;
+}
+@supports (backdrop-filter: blur(20px)) {
+  .wallpaper-toolbar { --card: transparent; }
+  .wallpaper-toolbar::before {
+    @apply backdrop-blur-[20px] backdrop-saturate-125;
+    /* Oversample neighbouring wallpaper, then let the stock Card crop the visible glass.
+       Chromium 142+ filters before this crop; older Chromium retains the basic blur. */
+    content: ""; position: absolute; inset: -20px;
+    background: rgb(242 250 244 / 50%); pointer-events: none;
+  }
 }
 @media (forced-colors: active) {
-  .wallpaper-toolbar { background: Canvas; color: CanvasText; backdrop-filter: none; outline: 1px solid CanvasText; }
+  .wallpaper-toolbar { background: Canvas; color: CanvasText; outline: 1px solid CanvasText; }
+  .wallpaper-toolbar::before { display: none; }
 }
 .wallpaper-toolbar[data-visible="false"] { opacity: 0; pointer-events: none; }
 .toolbar-placement:is([data-position="left"], [data-position="right"]) .toolbar-items { flex-direction: column; }
