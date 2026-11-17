@@ -12,6 +12,8 @@ pnpm build
 
 `pnpm dev` provides hot reload; `pnpm preview` serves the build for browser inspection. Neither establishes native compatibility. The complete `dist/` folder is the wallpaper: HTML, classic JavaScript, CSS, callback bridge, generated `project.json`, `version.json`, sample images, favicon, and licenses. Ship this folder without source, `node_modules`, or test fixtures. Playback needs no Node, pnpm, server, or network.
 
+The ReUI/shadcn interface uses Tailwind 4 CSS and requires Chrome 111+ (including compatible embedded Chromium hosts). All component code, CSS and icons are bundled locally; registry access is only needed during development. The [architecture](architecture.md#packaging-and-initialization) records component setup and maintenance requirements.
+
 The settings footer shows the running version; `version.json` identifies a package without running it. See [release guidance](releases.md) and [verification commands](verification.md#run-the-checks).
 
 ## Initial Wallpaper Engine import
@@ -49,6 +51,8 @@ Move the pointer or Tab to reveal the toolbar. It hides after three seconds unle
 Fields and buttons retain normal key behavior. Host keyboard forwarding remains unverified; use pointer controls/native properties where keys are unavailable. The dialog supports Tab, Escape, focus return, and small-screen scrolling.
 
 The toolbar defaults to **Top center**. Under **Controls**, choose Top/Bottom/Left/Right center and **Edge clearance (pixels)** (8–256; default 24). Side placements use a vertical toolbar. Increase clearance for bottom placement to clear the taskbar, or choose an edge away from desktop icons. These settings are also available in Wallpaper Engine’s native properties if the overlay is obstructed. Small windows reduce rendered clearance as needed without changing the saved value. Settings remain centered and scroll independently.
+
+The settings heading and close button stay visible while scrolling through Playback, Appearance and Controls. Dropdowns retain native keyboard behavior; Shuffle uses a switch and Blur strength uses an accessible slider. The interface defaults to the green dark theme; no theme selector is exposed.
 
 The original v1.0.0 bottom toolbar could overlap the taskbar. Configurable placement addresses that limitation, but actual desktop taskbar/icon clearance still needs native acceptance; browser containment alone does not establish it.
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+Production controls now use ReUI Frame and shadcn Radix Nova components with Tailwind 4, preserving the green theme and existing preference contracts. Settings have a fixed heading/close control, a scrollable body, standard fields/switch/slider, and light theme tokens for future reuse. All assets remain offline/local. CSS now requires Chrome 111+; the JavaScript target is unchanged. Development preview tools retain their existing UI.
+
 Toolbar placement now defaults to top center, with top/bottom/left/right anchors and configurable edge clearance in native properties and the settings overlay. Saved placement follows existing override/reset rules without migrating v1 preferences. Small viewports clamp rendered clearance and side anchors use vertical controls. Offline browser verification is recorded in [verification](verification.md); native taskbar/icon, DPI and multi-monitor acceptance remains pending. No application-version bump yet.
 
 ## 1.0.0 — 2026-11-16

@@ -1,43 +1,109 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: 'Segoe UI', system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--muted);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--muted);
+  --color-accent-foreground: var(--foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
 :root {
+  --radius: 0.5rem;
+  --background: #f3f6f3;
+  --foreground: #1b2921;
+  --card: #f8faf8;
+  --popover: #f8faf8;
+  --primary: #355f42;
+  --primary-foreground: #ffffff;
+  --muted: #e4ebe5;
+  --muted-foreground: #516459;
+  --border: #c4cfc7;
+  --input: #a3b3a8;
+  --ring: #3d704c;
+  --destructive: #b42332;
   font-family: 'Segoe UI', system-ui, sans-serif;
-  color: #f5f5f4;
-  background: #111315;
-  color-scheme: dark;
+  color: var(--foreground);
+  background: var(--background);
+  color-scheme: light;
   font-synthesis: none;
   -webkit-font-smoothing: antialiased;
+}
+
+.dark {
+  --background: #111719;
+  --foreground: #eff2ee;
+  --card: #171e22;
+  --popover: #171e22;
+  --primary: #c8dfc5;
+  --primary-foreground: #15251b;
+  --muted: #29352f;
+  --muted-foreground: #b4c0ba;
+  --border: #3c4c43;
+  --input: #53665a;
+  --ring: #c8dfc5;
+  --destructive: #ff8c98;
+  color-scheme: dark;
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; }
 }
 
 * { box-sizing: border-box; }
 
 /* Keep native scrolling and keyboard behavior while matching both panel themes. */
-:where(.settings-panel, .preview-tools) {
+:where(.settings-scroll, .preview-tools, .wallpaper-toolbar) {
   scrollbar-width: thin;
-  scrollbar-color: #718178 transparent;
+  scrollbar-color: var(--muted-foreground) transparent;
   scrollbar-gutter: stable;
 }
 
 /* Chromium's pseudo-elements also let us remove arrows and round the thumb. */
 @supports selector(::-webkit-scrollbar) {
-  :where(.settings-panel, .preview-tools) { scrollbar-width: auto; scrollbar-color: auto; }
-  :where(.settings-panel, .preview-tools)::-webkit-scrollbar { width: 8px; height: 8px; }
-  :where(.settings-panel, .preview-tools)::-webkit-scrollbar-track { background: transparent; }
+  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar) { scrollbar-width: auto; scrollbar-color: auto; }
+  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar { width: 8px; height: 8px; }
+  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-track { background: transparent; }
   /* Keep the thumb's travel clear of the panels' rounded top/bottom corners. */
-  :where(.settings-panel, .preview-tools)::-webkit-scrollbar-track:vertical { margin-block: 16px; }
-  :where(.settings-panel, .preview-tools)::-webkit-scrollbar-thumb {
+  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-track:vertical { margin-block: 16px; }
+  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-thumb {
     min-height: 32px; border: 2px solid transparent; border-radius: 999px;
-    background: #718178; background-clip: padding-box;
+    background: var(--muted-foreground); background-clip: padding-box;
   }
-  :where(.settings-panel, .preview-tools)::-webkit-scrollbar-thumb:hover { background-color: #a6bcae; }
-  :where(.settings-panel, .preview-tools)::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
-  :where(.settings-panel, .preview-tools)::-webkit-scrollbar-corner { background: transparent; }
+  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-thumb:hover { background-color: var(--foreground); }
+  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-corner { background: transparent; }
 }
 
 @media (forced-colors: active) {
-  :where(.settings-panel, .preview-tools) { scrollbar-width: auto; scrollbar-color: auto; }
-  :where(.settings-panel, .preview-tools)::-webkit-scrollbar { width: revert; height: revert; }
-  :where(.settings-panel, .preview-tools)::-webkit-scrollbar-thumb,
-  :where(.settings-panel, .preview-tools)::-webkit-scrollbar-track,
-  :where(.settings-panel, .preview-tools)::-webkit-scrollbar-button { all: revert; }
+  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar) { scrollbar-width: auto; scrollbar-color: auto; }
+  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar { width: revert; height: revert; }
+  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-thumb,
+  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-track,
+  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-button { all: revert; }
 }
 
 html, body, #root {

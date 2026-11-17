@@ -7,6 +7,7 @@ import { createWallpaperRenderer } from './slideshow/resilient-renderer.ts'
 import { PlaybackController } from './slideshow/controller.ts'
 
 const query = new URLSearchParams(window.location.search)
+document.documentElement.classList.add('dark')
 const runtime = new WallpaperRuntime(import.meta.env.DEV || query.get('preview') === '1')
 runtime.connect(window.wallpaperBridge)
 const root = createRoot(document.getElementById('root')!)
