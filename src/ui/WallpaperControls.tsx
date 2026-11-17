@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Frame, FramePanel } from '@/components/reui/frame'
-import { Separator } from '@/components/ui/separator'
+import { Card, CardContent } from '@/components/ui/card'
+import { Pagination, PaginationContent, PaginationItem } from '@/components/ui/pagination'
 import { ChevronLeft, ChevronRight, Pause, Play, Settings2 } from 'lucide-react'
 import type { WallpaperRuntime, WallpaperSnapshot } from '../wallpaper/runtime.ts'
 import type { PlaybackController, PlaybackSnapshot } from '../slideshow/controller.ts'
 import { SettingsPanel } from './SettingsPanel.tsx'
+import { naturalImages } from '../slideshow/order.ts'
 import './controls.css'
 
 export function WallpaperControls({ runtime, snapshot, playback, playing }: {
@@ -46,25 +47,29 @@ export function WallpaperControls({ runtime, snapshot, playback, playing }: {
   }, [open, playback, hasCurrent, reveal, armHide])
   const canNavigate = !playing.navigating
   const externalPause = playing.paused && !playing.userPaused
+  const positions = useMemo(() => new Map(naturalImages(snapshot.images).map((image, index) => [image.id, index + 1])), [snapshot.images])
+  const position = playing.current ? positions.get(playing.current.id) || 0 : 0
   return <Dialog open={open} onOpenChange={setOpen}>
     <div className="toolbar-placement" data-position={snapshot.settings.toolbarposition}
       style={{ '--toolbar-margin': `${snapshot.settings.toolbarmargin}px` } as CSSProperties}>
-    <Frame ref={toolbar} spacing="xs" className="wallpaper-toolbar bg-card/95 text-sm text-card-foreground transition-opacity duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:duration-100" role="group" aria-label="Slideshow controls" data-visible={visible || open}
+    {/* Keep the pagination-card example's p-2 / p-0 spacing; actions are buttons, not page links. */}
+    <Card ref={toolbar} className="wallpaper-toolbar p-2 transition-opacity duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:duration-100" role="group" aria-label="Slideshow controls" data-visible={visible || open}
       onPointerEnter={() => { hovered.current = true; reveal() }} onPointerLeave={() => { hovered.current = false; reveal() }}
       onFocus={reveal} onBlur={reveal}>
-      <FramePanel fit className="toolbar-items">
-      <div className="toolbar-caption" aria-hidden="true"><span className="text-xs text-muted-foreground">{externalPause ? 'Paused by system' : playing.userPaused ? 'Paused' : 'Now showing'}</span><span className="toolbar-filename" title={playing.current?.name}>{playing.current?.name || 'No image selected'}</span></div>
-      <span className="visually-hidden">{externalPause ? 'Paused by system' : playing.userPaused ? 'Paused' : 'Now showing'}: {playing.current?.name || 'No image selected'}</span>
-      <Separator orientation="vertical" className="toolbar-divider toolbar-caption-divider" />
-      <Button type="button" variant="ghost" size="icon" aria-label="Previous image" title="Previous image (←)" disabled={!playing.canPrevious || !canNavigate} onClick={playback.previous}><ChevronLeft aria-hidden="true" /></Button>
-      <Button type="button" size="icon" aria-label={playing.userPaused ? 'Resume playback' : 'Pause playback'} title={externalPause ? 'The system has paused playback' : 'Play/pause (Space)'} disabled={!playing.current} onClick={playback.togglePause}>
-        {playing.userPaused ? <Play aria-hidden="true" size={18} fill="currentColor" /> : <Pause aria-hidden="true" size={18} fill="currentColor" />}
-      </Button>
-      <Button type="button" variant="ghost" size="icon" aria-label="Next image" title="Next image (→)" disabled={!playing.canNext || !canNavigate} onClick={playback.next}><ChevronRight aria-hidden="true" /></Button>
-      <Separator orientation="vertical" className="toolbar-divider" />
-      <DialogTrigger asChild><Button type="button" variant="ghost" size="icon" aria-label="Open settings" title="Settings (S)"><Settings2 aria-hidden="true" /></Button></DialogTrigger>
-      </FramePanel>
-    </Frame>
+      <CardContent className="p-0">
+        <Pagination aria-label="Slideshow navigation">
+          <PaginationContent className="toolbar-items">
+            <PaginationItem><Button type="button" variant="ghost" size="icon" className="rounded-full" aria-label="Previous image" title="Previous image (←)" disabled={!playing.canPrevious || !canNavigate} onClick={playback.previous}><ChevronLeft aria-hidden="true" /></Button></PaginationItem>
+            <PaginationItem><span role="status" aria-label="Image position" className="inline-flex min-w-8 items-center justify-center tabular-nums">{position}/{snapshot.images.length}</span></PaginationItem>
+            <PaginationItem><Button type="button" size="icon" aria-label={playing.userPaused ? 'Resume playback' : 'Pause playback'} title={externalPause ? 'The system has paused playback' : 'Play/pause (Space)'} disabled={!playing.current} onClick={playback.togglePause}>
+              {playing.userPaused ? <Play aria-hidden="true" fill="currentColor" /> : <Pause aria-hidden="true" fill="currentColor" />}
+            </Button></PaginationItem>
+            <PaginationItem><Button type="button" variant="ghost" size="icon" className="rounded-full" aria-label="Next image" title="Next image (→)" disabled={!playing.canNext || !canNavigate} onClick={playback.next}><ChevronRight aria-hidden="true" /></Button></PaginationItem>
+            <PaginationItem><DialogTrigger asChild><Button type="button" variant="ghost" size="icon" aria-label="Open settings" title="Settings (S)"><Settings2 aria-hidden="true" /></Button></DialogTrigger></PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </CardContent>
+    </Card>
     </div>
     <SettingsPanel runtime={runtime} snapshot={snapshot} />
   </Dialog>

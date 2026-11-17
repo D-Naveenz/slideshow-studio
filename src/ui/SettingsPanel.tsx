@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch'
 import type { WallpaperRuntime, WallpaperSnapshot } from '../wallpaper/runtime.ts'
 import { definitions } from '../wallpaper/settings.ts'
 import { appVersion } from '../version.ts'
+import { NumberControl } from './NumberControl.tsx'
 
 export function SettingsPanel({ runtime, snapshot }: { runtime: WallpaperRuntime; snapshot: WallpaperSnapshot }) {
   const { settings, overrides } = snapshot
@@ -24,11 +25,8 @@ export function SettingsPanel({ runtime, snapshot }: { runtime: WallpaperRuntime
     </div>
   }
   function number(key: 'holdseconds' | 'transitionseconds' | 'toolbarmargin', label: string, disabled = false) {
-    return <div className="grid min-w-0 gap-2">
-      <Label htmlFor={`${id}-${key}`}>{label}</Label>
-      <Input id={`${id}-${key}`} type="number" min={definitions[key].min} max={definitions[key].max} step={definitions[key].fraction ? 0.1 : 1}
-        value={settings[key]} disabled={disabled} onChange={event => runtime.setOverrides({ [key]: event.currentTarget.valueAsNumber })} />
-    </div>
+    return <NumberControl label={label} value={settings[key]} min={definitions[key].min!} max={definitions[key].max}
+      step={definitions[key].fraction ? 0.1 : 1} disabled={disabled} onChange={value => runtime.setOverrides({ [key]: value })} />
   }
   const source = definitions.source.options!.find(option => option.value === settings.source)?.label
   return <DialogContent className="settings-panel flex h-[min(48rem,calc(100dvh-2rem))] min-h-0 flex-col sm:max-w-lg" showCloseButton={false}>

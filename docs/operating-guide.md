@@ -41,6 +41,8 @@ Fill crops to cover; Fit preserves the image over a solid color or blurred dupli
 
 Move the pointer or Tab to reveal the toolbar. It hides after three seconds unless hovered, focused, or settings are open. Native **Enable navigation and settings overlay** disables controls and shortcuts together. Pending/unavailable navigation is disabled.
 
+The compact dark green acrylic toolbar shows Previous, current/total (for example **3/10**), Pause/Resume, Next and Settings. It does not show a filename. The counter is the image's natural-order position in the selected collection, including when shuffle is enabled; it is not the number of images visited. It shows 0/0 for an empty collection.
+
 | Shortcut | Action |
 | --- | --- |
 | Left / Right | Previous / next |
@@ -52,7 +54,7 @@ Fields and buttons retain normal key behavior. Host keyboard forwarding remains 
 
 The toolbar defaults to **Top center**. Under **Controls**, choose Top/Bottom/Left/Right center and **Edge clearance (pixels)** (8–256; default 24). Side placements use a vertical toolbar. Increase clearance for bottom placement to clear the taskbar, or choose an edge away from desktop icons. These settings are also available in Wallpaper Engine’s native properties if the overlay is obstructed. Small windows reduce rendered clearance as needed without changing the saved value. Settings remain centered and scroll independently.
 
-The settings heading and close button stay visible while scrolling through Playback, Appearance and Controls. Dropdowns retain native keyboard behavior; Shuffle uses a switch and Blur strength uses an accessible slider. The interface defaults to the green dark theme; no theme selector is exposed.
+The settings heading and close button stay visible while scrolling through Playback, Appearance and Controls. Dropdowns retain native keyboard behavior; Shuffle uses a switch and Blur strength uses an accessible slider. Hold time, duration and edge clearance have compact decrement/increment number fields; values can also be typed or changed with arrow keys. Duration is disabled for Instant transitions. The interface defaults to the green dark theme; no theme selector is exposed.
 
 The original v1.0.0 bottom toolbar could overlap the taskbar. Configurable placement addresses that limitation, but actual desktop taskbar/icon clearance still needs native acceptance; browser containment alone does not establish it.
 
@@ -61,6 +63,8 @@ Settings saves playback, appearance, and toolbar placement overrides locally. In
 ## Preview and diagnostics
 
 Development automatically shows the preview panel. For a built package, open `dist/index.html` directly in a browser and append `?preview=1` to its URL. Normal production hides the panel. Browser file/folder selections are session-only and release their object URLs on replacement. The catalogue displays at most four names plus a total count.
+
+Preview tools use the same ReUI/shadcn component system in a separate Card and remain available when the production overlay is disabled. Expand **Simulate Wallpaper Engine events** to edit host settings; its numeric fields support typing and stepping, including zero for uncapped FPS. These fields simulate host changes and follow host precedence, while the settings dialog edits local overrides.
 
 The panel shows current filename, backend, failures, and estimated prepared resources. **Simulate Wallpaper Engine events** sends timing, appearance, shuffle, FPS, and pause changes through the real bridge. These mocks do not establish native event behavior. Append `&renderer=canvas` to force Canvas2D.
 

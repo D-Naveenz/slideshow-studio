@@ -7,9 +7,9 @@
   },
   "overrides": [
     {
-      "files": ["src/components/ui/button.tsx", "src/components/reui/frame.tsx"],
+      "files": ["src/components/ui/button.tsx"],
       "rules": {
-        "react/only-export-components": ["warn", { "allowConstantExport": true, "allowExportNames": ["buttonVariants", "frameVariants"] }]
+        "react/only-export-components": ["warn", { "allowConstantExport": true, "allowExportNames": ["buttonVariants"] }]
       }
     }
   ]

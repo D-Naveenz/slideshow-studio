@@ -76,7 +76,7 @@
 * { box-sizing: border-box; }
 
 /* Keep native scrolling and keyboard behavior while matching both panel themes. */
-:where(.settings-scroll, .preview-tools, .wallpaper-toolbar) {
+:where(.settings-scroll, .preview-scroll, .wallpaper-toolbar) {
   scrollbar-width: thin;
   scrollbar-color: var(--muted-foreground) transparent;
   scrollbar-gutter: stable;
@@ -84,26 +84,26 @@
 
 /* Chromium's pseudo-elements also let us remove arrows and round the thumb. */
 @supports selector(::-webkit-scrollbar) {
-  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar) { scrollbar-width: auto; scrollbar-color: auto; }
-  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar { width: 8px; height: 8px; }
-  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-track { background: transparent; }
+  :where(.settings-scroll, .preview-scroll, .wallpaper-toolbar) { scrollbar-width: auto; scrollbar-color: auto; }
+  :where(.settings-scroll, .preview-scroll, .wallpaper-toolbar)::-webkit-scrollbar { width: 8px; height: 8px; }
+  :where(.settings-scroll, .preview-scroll, .wallpaper-toolbar)::-webkit-scrollbar-track { background: transparent; }
   /* Keep the thumb's travel clear of the panels' rounded top/bottom corners. */
-  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-track:vertical { margin-block: 16px; }
-  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-thumb {
+  :where(.settings-scroll, .preview-scroll, .wallpaper-toolbar)::-webkit-scrollbar-track:vertical { margin-block: 16px; }
+  :where(.settings-scroll, .preview-scroll, .wallpaper-toolbar)::-webkit-scrollbar-thumb {
     min-height: 32px; border: 2px solid transparent; border-radius: 999px;
     background: var(--muted-foreground); background-clip: padding-box;
   }
-  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-thumb:hover { background-color: var(--foreground); }
-  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
-  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-corner { background: transparent; }
+  :where(.settings-scroll, .preview-scroll, .wallpaper-toolbar)::-webkit-scrollbar-thumb:hover { background-color: var(--foreground); }
+  :where(.settings-scroll, .preview-scroll, .wallpaper-toolbar)::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+  :where(.settings-scroll, .preview-scroll, .wallpaper-toolbar)::-webkit-scrollbar-corner { background: transparent; }
 }
 
 @media (forced-colors: active) {
-  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar) { scrollbar-width: auto; scrollbar-color: auto; }
-  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar { width: revert; height: revert; }
-  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-thumb,
-  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-track,
-  :where(.settings-scroll, .preview-tools, .wallpaper-toolbar)::-webkit-scrollbar-button { all: revert; }
+  :where(.settings-scroll, .preview-scroll, .wallpaper-toolbar) { scrollbar-width: auto; scrollbar-color: auto; }
+  :where(.settings-scroll, .preview-scroll, .wallpaper-toolbar)::-webkit-scrollbar { width: revert; height: revert; }
+  :where(.settings-scroll, .preview-scroll, .wallpaper-toolbar)::-webkit-scrollbar-thumb,
+  :where(.settings-scroll, .preview-scroll, .wallpaper-toolbar)::-webkit-scrollbar-track,
+  :where(.settings-scroll, .preview-scroll, .wallpaper-toolbar)::-webkit-scrollbar-button { all: revert; }
 }
 
 html, body, #root {
