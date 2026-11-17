@@ -1,45 +1,38 @@
 # Slideshow Studio agent instructions
 
-## Git Workflow Rule
-- NEVER run `git commit` or `git push`.
-- When an agreed task is split into separate commit batches, implement and verify one batch at a time. If another actionable batch remains, summarize the completed batch and stop with: "Ready for your custom git commit. Reply 'continue' once you have committed."
-- Wait for the user's reply before starting that next batch. On continuation, inspect Git history and status to confirm the previous batch was committed.
-- When the final batch or a standalone task is finished, summarize the result and checks normally. Do not request 'continue', imply more implementation is pending, or require a commit acknowledgement when no further batch remains.
-- Unverified manual checks, environment limitations, and optional future enhancements do not by themselves justify a commit/continue loop. Report them clearly without inventing another batch.
+## Git workflow
 
-When the current task has an agreed implementation plan, use it to identify remaining batches; do not combine batches intended for separate commits. Completed plans are disposable: move lasting decisions, operating knowledge, and verification evidence into the relevant docs, then remove the plan. Use Git history for implementation chronology. A new request can proceed without commit acknowledgement for a completed task. Preserve unrelated user changes; never reset, discard, stage, or amend them on the user's behalf. The user handles Gitmoji-style commit generation.
+- NEVER run `git commit` or `git push`. Preserve unrelated changes; never reset, discard, stage, or amend them. The user handles Gitmoji-style commits.
+- Follow agreed commit batches one at a time; do not combine them. After verifying a batch, if another actionable batch remains, summarize and stop with: "Ready for your custom git commit. Reply 'continue' once you have committed."
+- Wait for that reply; inspect Git history/status to confirm the prior commit before starting the next batch.
+- Final batches and standalone tasks end normally without a commit acknowledgement or `continue`. Unverified manual checks, environment limits, and optional enhancements do not create another batch. New requests may proceed after completed work.
+- Keep active progress in the task's temporary plan when one exists. Transfer lasting decisions/evidence to relevant docs, then remove completed plans. Use Git for chronology; do not recreate historical plans.
 
 ## CodeGraph
 
-Before locating or understanding code, check for a `.codegraph/` index at the repository root or an ancestor and reuse an existing project index. Prefer `codegraph_explore` with an explicit `projectPath` if an MCP tool is available. Otherwise use `codegraph explore "<symbol names or question>"`. Naming a file or symbol returns its current source; do not reread the same source unnecessarily.
+Before locating/understanding code, check for an index at the repository root or an ancestor and reuse it. Check MCP/CLI availability; prefer `codegraph_explore` with explicit `projectPath`, otherwise `codegraph explore "<symbols or question>"`. Naming a file/symbol returns current source; avoid rereading it.
 
-If no project index exists and the CLI is available, run `codegraph init --yes` at the repository root and verify a small query. Initialization is authorized. Do not install CodeGraph automatically. If tools are unavailable or initialization fails, report the limitation briefly and use `rg` and normal file inspection.
+If no index exists and CLI is available, initialization with `codegraph init --yes` is authorized; verify a small query. Never install CodeGraph automatically. If unavailable or initialization fails, briefly report and use `rg`/normal inspection.
 
-The current environment has CodeGraph installed outside `PATH`. PowerShell fallback:
+Windows fallback outside PATH:
 
 ```powershell
 & "$env:APPDATA\npm\codegraph.cmd" explore "App in src/App.tsx"
 ```
 
-Keep generated databases and caches out of Git. Preserve CodeGraph's generated `.codegraph/.gitignore` rules.
+Keep databases/caches out of Git and preserve generated `.codegraph/.gitignore` rules.
 
-## Architecture boundaries
+## Architecture and targeted reading
 
-- The existing Vite, React, TypeScript, React Compiler, and Oxlint setup is the baseline. Do not migrate frameworks or make unrelated dependency upgrades.
-- Wallpaper Engine runs browser HTML, CSS, and JavaScript. Node is for development/build tooling only. The final package must run offline with local assets and no server.
-- React owns controls and settings UI. Image decoding, caching, playback timing, and per-frame rendering belong outside React's render cycle.
-- Keep the Wallpaper Engine adapter, settings, image catalogue, playback controller, resource cache, and renderer separated through typed interfaces.
-- Directory enumeration collects paths, not decoded images. Bound prepared image resources, discard stale asynchronous results, and release evicted resources.
-- Register host callbacks before application initialization. Treat host property events as partial updates.
-- Follow [the architecture document](docs/architecture.md) for defaults, settings precedence, rendering behavior, and scope. Audio visualization, video, and animated-image playback are deferred.
+- [Product direction](docs/product-direction.md): read for feature/scope decisions. Favor a lightweight, English-first slideshow framework and future creator reuse. Decorative systems/unrelated media are outside the core; video, animated playback, and audio visualization remain deferred.
+- [Architecture](docs/architecture.md): read relevant contracts before changes. Retain Vite/React/TypeScript/React Compiler/Oxlint without unrelated upgrades. Runtime is offline browser HTML/CSS/JS with local assets and no Node/server.
+- Keep adapter, settings, catalogue, playback, resource cache, and renderer separated through typed interfaces. React owns UI, not decoding/timing/frame work. Enumerate paths without decoding; bound preparation, discard stale results, release evictions. Register callbacks before initialization and treat host events as partial patches.
+- [Operating guide](docs/operating-guide.md): build/import/diagnosis. [Desktop lessons](docs/desktop-lessons.md): required before host verification or desktop layout changes. Reuse an appropriate working import; distinguish initial import, installed updates, and runtime reloads.
+- [Release guidance](docs/releases.md): `package.json` is the application-version source, independent of storage schemas. Never overwrite the installed wallpaper as part of a routine build.
 
-## Validation and reporting
+## Validation and documentation
 
-- Run `pnpm build` for TypeScript project checks and the production build, and `pnpm lint` for Oxlint. These are the current validation scripts.
-- Run `pnpm test` for unit checks and the relevant package/browser suites (`pnpm test:package`, `pnpm test:browser`). Run `pnpm test:stress` when changing image preparation/rendering/resource behavior or updating performance claims. Suite runners may be used against one final build to avoid repeated builds.
-- Verify packaged local-file startup and actual Wallpaper Engine integration in the batches that introduce them. A development-server preview does not establish host compatibility.
-- Read [native desktop lessons](docs/desktop-lessons.md) before future host verification or desktop control-layout changes. Reuse the existing imported project when appropriate; distinguish initial editor import, installed-file updates, and runtime reloads.
-- Validate desktop controls against taskbar/icon occlusion on the actual desktop. Passing browser/editor viewport checks does not establish usable desktop positioning. The toolbar/taskbar overlap is documented and deferred at the user's request.
-- Keep architecture, operating instructions, release notes, and verification results aligned with the implementation. Record active multi-commit progress in that task's temporary plan, if one exists; do not recreate a completed historical plan.
-- `package.json` is the application version source. Follow [release guidance](docs/releases.md); keep application release versions separate from persisted-settings schema versions. Never overwrite the user's installed wallpaper as part of a routine build.
-- Report unavailable checks explicitly. The prepared-resource budget is an estimate, not a hard process-memory guarantee; do not promise stutter-free playback on all hardware.
+- Run `pnpm build`, `pnpm lint`, `pnpm test`, and relevant `pnpm test:package` / `pnpm test:browser`. Run `pnpm test:stress` for preparation/rendering/resource changes or updated performance claims. Direct suite runners may share one final build; see [verification](docs/verification.md#run-the-checks).
+- Verify packaged local-file startup and native integration in batches introducing them. Browser/dev-server checks do not establish host compatibility. Test actual desktop taskbar/icon clearance for control-layout changes; the current overlap fix is deferred.
+- Keep contracts, operating instructions, release notes, and evidence aligned. Give each topic one primary home and link instead of duplicating; use source/CodeGraph for recoverable implementation detail. Reference analysis is optional background, not routine reading.
+- Report unavailable checks and distinguish fresh results from historical/user-supplied evidence. The prepared-resource budget is an estimate, not a process-memory guarantee; never promise universal stutter-free playback.
