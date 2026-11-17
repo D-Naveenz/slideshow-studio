@@ -48,9 +48,11 @@ Move the pointer or Tab to reveal the toolbar. It hides after three seconds unle
 
 Fields and buttons retain normal key behavior. Host keyboard forwarding remains unverified; use pointer controls/native properties where keys are unavailable. The dialog supports Tab, Escape, focus return, and small-screen scrolling.
 
-**Known desktop issue:** the taskbar can cover part of the toolbar. The fix is deferred; disabling the overlay is available. Desktop clearance must be tested separately from editor/browser layout.
+The toolbar defaults to **Top center**. Under **Controls**, choose Top/Bottom/Left/Right center and **Edge clearance (pixels)** (8–256; default 24). Side placements use a vertical toolbar. Increase clearance for bottom placement to clear the taskbar, or choose an edge away from desktop icons. These settings are also available in Wallpaper Engine’s native properties if the overlay is obstructed. Small windows reduce rendered clearance as needed without changing the saved value. Settings remain centered and scroll independently.
 
-Settings saves playback/appearance overrides locally. Initial host settings load beneath saved overrides; later changed host values clear matching overrides. **Reset to Wallpaper Engine settings** restores the latest host values. Paths, master switch, and pause do not persist through the overlay. Storage failures leave session controls usable; persistence depends on origin/profile. Exact precedence belongs in [architecture](architecture.md#settings-and-persistence).
+The original v1.0.0 bottom toolbar could overlap the taskbar. Configurable placement addresses that limitation, but actual desktop taskbar/icon clearance still needs native acceptance; browser containment alone does not establish it.
+
+Settings saves playback, appearance, and toolbar placement overrides locally. Initial host settings load beneath saved overrides; later changed host values clear matching overrides. **Reset to Wallpaper Engine settings** restores the latest host values, including placement. Paths, master switch, and pause do not persist through the overlay. Storage failures leave session controls usable; persistence depends on origin/profile. Exact precedence belongs in [architecture](architecture.md#settings-and-persistence).
 
 ## Preview and diagnostics
 

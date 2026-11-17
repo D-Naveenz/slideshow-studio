@@ -9,14 +9,14 @@ import { appVersion } from '../version.ts'
 export function SettingsPanel({ runtime, snapshot }: { runtime: WallpaperRuntime; snapshot: WallpaperSnapshot }) {
   const { settings, overrides } = snapshot
   const id = useId()
-  function select(key: 'transition' | 'fit' | 'background', label: string) {
+  function select(key: 'transition' | 'fit' | 'background' | 'toolbarposition', label: string) {
     return <div className="settings-field"><label htmlFor={`${id}-${key}`}>{label}</label>
       <select id={`${id}-${key}`} value={settings[key]} onChange={event => runtime.setOverrides({ [key]: event.currentTarget.value })}>
         {definitions[key].options!.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
     </div>
   }
-  function number(key: 'holdseconds' | 'transitionseconds', label: string, disabled = false) {
+  function number(key: 'holdseconds' | 'transitionseconds' | 'toolbarmargin', label: string, disabled = false) {
     return <label className="settings-field">{label}
       <input type="number" min={definitions[key].min} max={definitions[key].max} step={definitions[key].fraction ? 0.1 : 1}
         value={settings[key]} disabled={disabled} onChange={event => runtime.setOverrides({ [key]: event.currentTarget.valueAsNumber })} />
@@ -46,6 +46,11 @@ export function SettingsPanel({ runtime, snapshot }: { runtime: WallpaperRuntime
             <input id={`${id}-blur`} type="range" min={definitions.blur.min} max={definitions.blur.max} step="1" value={settings.blur} onChange={event => runtime.setOverrides({ blur: event.currentTarget.valueAsNumber })} />
           </div> : <label className="settings-color">Background color<input type="color" value={settings.backgroundcolor} onChange={event => runtime.setOverrides({ backgroundcolor: event.currentTarget.value })} /></label>}
         </> : <p className="settings-hint">Fill crops the image to cover the screen. Fit keeps the entire image visible.</p>}
+      </fieldset>
+      <fieldset><legend>Controls</legend>
+        {select('toolbarposition', 'Toolbar position')}
+        {number('toolbarmargin', 'Edge clearance (pixels)')}
+        <p className="settings-hint">Choose an edge away from desktop icons. For bottom placement, increase clearance to keep controls above the taskbar. Placement can also be changed in Wallpaper Engine’s properties panel.</p>
       </fieldset>
       <footer className="settings-footer">
         <p role="status">{overrides.length ? `${overrides.length} local ${overrides.length === 1 ? 'override' : 'overrides'}` : 'Using Wallpaper Engine settings'}</p>

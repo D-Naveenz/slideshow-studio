@@ -1,7 +1,17 @@
+.toolbar-placement {
+  position: fixed; inset: 0; z-index: 10; display: flex;
+  align-items: flex-start; justify-content: center; pointer-events: none;
+  /* Preserve the saved clearance while leaving space for controls in small viewports. */
+  padding-block: min(var(--toolbar-margin), max(8px, calc((100vh - 64px) / 2)));
+  padding-inline: min(var(--toolbar-margin), max(8px, calc((100vw - 64px) / 2)));
+}
+.toolbar-placement[data-position="bottom"] { align-items: flex-end; }
+.toolbar-placement[data-position="left"] { align-items: center; justify-content: flex-start; }
+.toolbar-placement[data-position="right"] { align-items: center; justify-content: flex-end; }
 .wallpaper-toolbar {
-  position: fixed; z-index: 10; bottom: 24px; left: 50%; transform: translateX(-50%);
+  pointer-events: auto; min-width: 0; max-height: 100%; overflow: auto;
   display: flex; align-items: center; gap: 6px; padding: 10px 12px 10px 20px;
-  max-width: calc(100% - 32px); border: 1px solid #ffffff26; border-radius: 18px;
+  max-width: 100%; border: 1px solid #ffffff26; border-radius: 18px;
   background: #151b1ff5; color: #edf0ed; box-shadow: 0 12px 44px #0007;
   opacity: 1; transition: opacity 180ms ease; font-size: 13px;
 }
@@ -10,6 +20,10 @@
 .toolbar-eyebrow { color: #a8b5ad; font-size: 10px; text-transform: uppercase; letter-spacing: .12em; }
 .toolbar-filename { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .toolbar-divider { flex: none; width: 1px; height: 24px; margin-inline: 4px; background: #ffffff20; }
+.toolbar-placement:is([data-position="left"], [data-position="right"]) .wallpaper-toolbar { flex-direction: column; padding: 10px; }
+.toolbar-placement:is([data-position="left"], [data-position="right"]) .toolbar-caption,
+.toolbar-placement:is([data-position="left"], [data-position="right"]) .toolbar-caption-divider { display: none; }
+.toolbar-placement:is([data-position="left"], [data-position="right"]) .toolbar-divider { width: 24px; height: 1px; margin: 4px 0; }
 .icon-button { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; color: inherit; background: transparent; border: 1px solid transparent; border-radius: 10px; cursor: pointer; }
 .icon-button:hover:not(:disabled) { background: #ffffff12; }
 .icon-button.play-button { background: #c8dfc5; color: #15251b; }
@@ -47,9 +61,9 @@
 .settings-shortcuts span { margin-inline: 4px; }
 .settings-shortcuts kbd { font-family: inherit; color: #d7e4db; }
 @media (max-width: 520px) {
-  .wallpaper-toolbar { bottom: 16px; padding: 8px; gap: 3px; }
+  .wallpaper-toolbar { padding: 8px; gap: 3px; }
   .toolbar-caption { display: none; }
-  .toolbar-divider:first-of-type { display: none; }
+  .toolbar-caption-divider { display: none; }
   .settings-panel { padding: 22px; }
   .settings-heading { top: -22px; margin: -22px -22px 0; padding: 20px 22px 14px; }
 }

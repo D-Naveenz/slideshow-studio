@@ -2,6 +2,8 @@
 
 ## Evidence dates and coverage
 
+**2026-11-17 toolbar placement batch:** build/typecheck, lint, 54 unit tests, 5 package tests, and 26 offline Edge browser tests passed against the final build. Edge launch inside the filesystem sandbox failed with a Crashpad named-pipe error; the suite passed outside that sandbox. New coverage exercises four anchors, 80-pixel clearance, viewport clamping at 390×300 with a saved 256-pixel margin, dialog access/focus return, legacy v1 preference loading, placement persistence/host precedence/reset, and blocked storage. Toolbar screenshots at 1280×720 were reviewed for horizontal and vertical layout. These are browser/package results, not native shell acceptance. The installed wallpaper was not updated; actual visible/auto-hide taskbar, desktop-icon, DPI and multi-monitor checks remain pending. Rendering/preparation/resource behavior was unchanged, so stress was not rerun.
+
 Historical **2026-11-16** v1.0 release checks passed build, lint, 52 unit tests, 5 package tests, and 24 offline Edge browser tests. Raster stress and native user evidence below are also from 2026-11-16; they are not fresh measurements of later documentation work. Stress predates the visible version label; rendering/loading code was unchanged by that label.
 
 **2026-11-17 documentation validation:** build, lint, 52 unit, 5 package, and 24 offline Edge browser tests passed against one final build. Edge required execution outside the filesystem sandbox after a browser-launch named-pipe failure inside it. Stress and native integration were not rerun; their evidence remains dated above.

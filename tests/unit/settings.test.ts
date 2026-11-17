@@ -46,3 +46,16 @@ test('project properties cover the validated settings with host-compatible defau
     assert.equal(typeof result, 'boolean')
   }
 })
+
+test('toolbar placement validates anchors and clamps finite CSS pixel clearance', () => {
+  assert.equal(defaults.toolbarposition, 'top')
+  assert.equal(defaults.toolbarmargin, 24)
+  for (const value of ['top', 'bottom', 'left', 'right']) {
+    assert.deepEqual(settingsPatch({ toolbarposition: { value } }), { toolbarposition: value })
+  }
+  for (const value of ['center', '', null, 4]) assert.deepEqual(settingsPatch({ toolbarposition: { value } }), {})
+  for (const [value, expected] of [[0, 8], [999, 256], [30.6, 31]]) {
+    assert.deepEqual(settingsPatch({ toolbarmargin: { value } }), { toolbarmargin: expected })
+  }
+  for (const value of [NaN, Infinity, '24', null]) assert.deepEqual(settingsPatch({ toolbarmargin: { value } }), {})
+})

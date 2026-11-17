@@ -6,7 +6,7 @@ Read before host verification or desktop layout changes. [Original user evidence
 
 The bottom-centered toolbar fits in the editor preview but is partly hidden behind the Windows taskbar on the actual desktop. The user deferred its fix. Viewport containment alone does not establish usable placement, and CSS safe-area values must not be assumed to describe the Windows taskbar.
 
-Future positioning work should evaluate configurable placement/margins or another unobtrusive location. Investigate reliable host/work-area information before depending on it; do not choose a universal offset from one screenshot.
+The current source defaults to top center and provides configurable anchors/clearance in the overlay and native properties; see the [operating guide](operating-guide.md#sources-and-controls) for usage. This does not detect shell surfaces or establish native desktop acceptance. Do not choose a universal taskbar offset from one screenshot or depend on work-area information without host verification.
 
 Acceptance must cover:
 

@@ -49,10 +49,11 @@ Settings definitions are the source for property keys, types, bounds, defaults, 
 | Fit background | Blurred image; black solid alternative |
 | Blur | 24 screen pixels |
 | Navigation/settings overlay | Enabled |
+| Toolbar position / edge clearance | Top center / 24 CSS pixels (8–256) |
 
 Startup precedence is **defaults → initial host settings → saved overlay overrides**. Every event drained during bridge connection preserves overrides. If none supplied valid settings, the first valid later host event also preserves them. After initialization, a value differing from the last host value clears its matching override; repeated or unrelated host values preserve overrides. Reset clears overrides and restores the latest host values.
 
-Only hold, transition/duration, shuffle, sizing, background/color, and blur persist under `slideshow-studio.preferences.v1` in a versioned JSON envelope with shared validation. Source paths, master controls switch, and pause state never persist through the overlay. Storage getter/write/removal failures, corrupt data, and unknown schemas leave session controls usable. Storage scope follows browser origin/profile; package moves or host changes can expose different records. Application version and storage schema version are independent; see [release guidance](releases.md).
+Only hold, transition/duration, shuffle, sizing, background/color, blur, toolbar position, and toolbar clearance persist under `slideshow-studio.preferences.v1` in a versioned JSON envelope with shared validation. Older v1 records without placement fields retain their existing settings and use placement defaults beneath host values. Source paths, master controls switch, and pause state never persist through the overlay. Storage getter/write/removal failures, corrupt data, and unknown schemas leave session controls usable. Storage scope follows browser origin/profile; package moves or host changes can expose different records. Application version and storage schema version are independent; see [release guidance](releases.md).
 
 ## Sources and resource lifecycle
 
@@ -86,5 +87,7 @@ The controller schedules frames only for transitions or invalidation, paced by h
 ## Interaction boundary
 
 Native properties own image/folder selection and the master overlay switch. Disabling it unmounts controls and removes shortcuts/listeners/timers. Navigation is disabled when unavailable or pending; empty sources also disable pause. Hidden toolbar controls remain keyboard-reachable. Radix Dialog owns modal focus trapping, dismissal, and focus return; Lucide supplies local bundled SVG icons. Fields/buttons retain native key behavior; playback shortcuts ignore editing fields.
+
+Toolbar anchors are top/bottom center (horizontal) and left/right center (vertical). Clearance is measured from viewport edges in CSS pixels; small viewports clamp rendered clearance without rewriting saved preferences and allow toolbar scrolling when necessary. Filename and pause context remain accessible when the visual caption is hidden. Placement does not detect taskbars, work areas, or desktop icons; native properties provide recovery if overlay access is obstructed. Settings placement is independent of the toolbar.
 
 See the [operating guide](operating-guide.md) for controls and preview URLs, [desktop lessons](desktop-lessons.md) before layout/host work, and [verification](verification.md) before making compatibility claims. Video, animated playback, and audio visualization remain deferred.

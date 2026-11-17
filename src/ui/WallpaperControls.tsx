@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import { ChevronLeft, ChevronRight, Pause, Play, Settings2 } from 'lucide-react'
 import type { WallpaperRuntime, WallpaperSnapshot } from '../wallpaper/runtime.ts'
@@ -43,11 +44,14 @@ export function WallpaperControls({ runtime, snapshot, playback, playing }: {
   const canNavigate = !playing.navigating
   const externalPause = playing.paused && !playing.userPaused
   return <Dialog.Root open={open} onOpenChange={setOpen}>
+    <div className="toolbar-placement" data-position={snapshot.settings.toolbarposition}
+      style={{ '--toolbar-margin': `${snapshot.settings.toolbarmargin}px` } as CSSProperties}>
     <div ref={toolbar} className="wallpaper-toolbar" role="group" aria-label="Slideshow controls" data-visible={visible || open}
       onPointerEnter={() => { hovered.current = true; reveal() }} onPointerLeave={() => { hovered.current = false; reveal() }}
       onFocus={reveal} onBlur={reveal}>
-      <div className="toolbar-caption"><span className="toolbar-eyebrow">{externalPause ? 'Paused by system' : playing.userPaused ? 'Paused' : 'Now showing'}</span><span className="toolbar-filename" title={playing.current?.name}>{playing.current?.name || 'No image selected'}</span></div>
-      <span className="toolbar-divider" aria-hidden="true" />
+      <div className="toolbar-caption" aria-hidden="true"><span className="toolbar-eyebrow">{externalPause ? 'Paused by system' : playing.userPaused ? 'Paused' : 'Now showing'}</span><span className="toolbar-filename" title={playing.current?.name}>{playing.current?.name || 'No image selected'}</span></div>
+      <span className="visually-hidden">{externalPause ? 'Paused by system' : playing.userPaused ? 'Paused' : 'Now showing'}: {playing.current?.name || 'No image selected'}</span>
+      <span className="toolbar-divider toolbar-caption-divider" aria-hidden="true" />
       <button type="button" className="icon-button" aria-label="Previous image" title="Previous image (←)" disabled={!playing.canPrevious || !canNavigate} onClick={playback.previous}><ChevronLeft aria-hidden="true" size={22} /></button>
       <button type="button" className="icon-button play-button" aria-label={playing.userPaused ? 'Resume playback' : 'Pause playback'} title={externalPause ? 'The system has paused playback' : 'Play/pause (Space)'} disabled={!playing.current} onClick={playback.togglePause}>
         {playing.userPaused ? <Play aria-hidden="true" size={18} fill="currentColor" /> : <Pause aria-hidden="true" size={18} fill="currentColor" />}
@@ -55,6 +59,7 @@ export function WallpaperControls({ runtime, snapshot, playback, playing }: {
       <button type="button" className="icon-button" aria-label="Next image" title="Next image (→)" disabled={!playing.canNext || !canNavigate} onClick={playback.next}><ChevronRight aria-hidden="true" size={22} /></button>
       <span className="toolbar-divider" aria-hidden="true" />
       <Dialog.Trigger asChild><button type="button" className="icon-button" aria-label="Open settings" title="Settings (S)"><Settings2 aria-hidden="true" size={20} /></button></Dialog.Trigger>
+    </div>
     </div>
     <SettingsPanel runtime={runtime} snapshot={snapshot} />
   </Dialog.Root>

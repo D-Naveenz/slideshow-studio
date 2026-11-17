@@ -9,6 +9,28 @@ function memory(values: unknown = {}, version = 1) {
   return { entries, getItem: (key: string) => entries.get(key) ?? null, setItem: (key: string, value: string) => { entries.set(key, value) }, removeItem: (key: string) => { entries.delete(key) } }
 }
 
+test('placement extends v1 preferences and follows host precedence, persistence and reset', () => {
+  const legacy = new SettingsPreferences(memory({ fit: 'fit' }))
+  assert.equal(legacy.settings.toolbarposition, 'top')
+  assert.equal(legacy.settings.toolbarmargin, 24)
+  assert.equal(legacy.settings.fit, 'fit')
+  const storage = memory({ toolbarposition: 'left', toolbarmargin: 80 })
+  const preferences = new SettingsPreferences(storage)
+  preferences.applyHost({ toolbarposition: 'bottom', toolbarmargin: 60 }, true)
+  assert.equal(preferences.settings.toolbarposition, 'left')
+  preferences.applyHost({ toolbarposition: 'bottom', toolbarmargin: 90 }, false)
+  assert.equal(preferences.settings.toolbarposition, 'left')
+  assert.equal(preferences.settings.toolbarmargin, 90)
+  preferences.update({ toolbarposition: 'right', toolbarmargin: 999 })
+  const reload = new SettingsPreferences(storage)
+  assert.equal(reload.settings.toolbarposition, 'right')
+  assert.equal(reload.settings.toolbarmargin, 256)
+  preferences.reset()
+  assert.equal(preferences.settings.toolbarposition, 'bottom')
+  assert.equal(preferences.settings.toolbarmargin, 90)
+  assert.equal(storage.getItem(preferenceKey), null)
+})
+
 test('startup merges defaults, initial host values, then validated saved appearance/playback overrides', () => {
   const storage = memory({ fit: 'fit', holdseconds: 50, shuffle: true, source: 'directory', imagefile: 'C:/secret.jpg', controls: false, unexpected: 1 })
   const preferences = new SettingsPreferences(storage)

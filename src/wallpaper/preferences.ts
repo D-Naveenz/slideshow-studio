@@ -2,7 +2,7 @@ import { defaults, settingsPatch } from './settings.ts'
 import type { Settings } from './settings.ts'
 
 // Native source selection and the master controls switch always belong to the host.
-export const overlayKeys = ['holdseconds', 'transition', 'transitionseconds', 'shuffle', 'fit', 'background', 'backgroundcolor', 'blur'] as const
+export const overlayKeys = ['holdseconds', 'transition', 'transitionseconds', 'shuffle', 'fit', 'background', 'backgroundcolor', 'blur', 'toolbarposition', 'toolbarmargin'] as const
 export type OverlayKey = typeof overlayKeys[number]
 export type OverlaySettings = Pick<Settings, OverlayKey>
 export type PreferenceStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>

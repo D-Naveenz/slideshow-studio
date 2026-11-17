@@ -147,10 +147,68 @@ test('settings persist across reload, merge with host values, clear matching cha
 for (const failure of ['access', 'write']) test(`settings remain usable when storage ${failure} fails`, async ({ page }) => {
   const errors = await boot(page, { storageFailure: failure })
   await open(page)
+  await dialog(page).getByLabel('Toolbar position', { exact: true }).selectOption('right')
+  await dialog(page).getByRole('spinbutton', { name: 'Edge clearance (pixels)' }).fill('80')
+  await expect(page.locator('.toolbar-placement')).toHaveAttribute('data-position', 'right')
   await dialog(page).getByRole('spinbutton', { name: 'Hold time (seconds)' }).fill('44')
   await expect(dialog(page).getByRole('spinbutton', { name: 'Hold time (seconds)' })).toHaveValue('44')
   await dialog(page).getByRole('button', { name: 'Reset to Wallpaper Engine settings' }).click()
   await expect(dialog(page).getByRole('spinbutton', { name: 'Hold time (seconds)' })).toHaveValue('3600')
+  expect(errors).toEqual([])
+})
+
+test('placement persists, merges host changes and resets without migrating old preferences', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (!localStorage.getItem('slideshow-studio.preferences.v1')) localStorage.setItem('slideshow-studio.preferences.v1', JSON.stringify({ version: 1, values: { fit: 'fit' } }))
+  })
+  const errors = await boot(page)
+  await expect(page.locator('.toolbar-placement')).toHaveAttribute('data-position', 'top')
+  await open(page)
+  await expect(dialog(page).getByLabel('Image sizing', { exact: true })).toHaveValue('fit')
+  await dialog(page).getByLabel('Toolbar position', { exact: true }).selectOption('bottom')
+  await dialog(page).getByRole('spinbutton', { name: 'Edge clearance (pixels)' }).fill('96')
+  await page.reload()
+  await expect(page.locator('.toolbar-placement')).toHaveAttribute('data-position', 'bottom')
+  await open(page)
+  await expect(dialog(page).getByRole('spinbutton', { name: 'Edge clearance (pixels)' })).toHaveValue('96')
+  await page.evaluate(() => window.wallpaperPropertyListener.applyUserProperties({ toolbarposition: { value: 'right' } }))
+  await expect(page.locator('.toolbar-placement')).toHaveAttribute('data-position', 'right')
+  await expect(dialog(page).getByRole('spinbutton', { name: 'Edge clearance (pixels)' })).toHaveValue('96')
+  await dialog(page).getByRole('button', { name: 'Reset to Wallpaper Engine settings' }).click()
+  await expect(page.locator('.toolbar-placement')).toHaveAttribute('data-position', 'right')
+  await expect(dialog(page).getByRole('spinbutton', { name: 'Edge clearance (pixels)' })).toHaveValue('24')
+  expect(errors).toEqual([])
+})
+
+test('all anchors clear viewport edges and keep actions reachable after resize', async ({ page }, testInfo) => {
+  const errors = await boot(page)
+  for (const position of ['top', 'bottom', 'left', 'right']) {
+    await page.setViewportSize({ width: 1280, height: 720 })
+    await page.evaluate(position => window.wallpaperPropertyListener.applyUserProperties({ toolbarposition: { value: position }, toolbarmargin: { value: 80 } }), position)
+    await page.mouse.move(5, 5)
+    const controls = toolbar(page)
+    const box = await controls.boundingBox()
+    const edge = position === 'top' ? box.y : position === 'bottom' ? 720 - box.y - box.height : position === 'left' ? box.x : 1280 - box.x - box.width
+    expect(edge).toBeCloseTo(80, 0)
+    if (position === 'left' || position === 'right') {
+      const pause = await controls.getByRole('button', { name: 'Pause playback' }).boundingBox()
+      const next = await controls.getByRole('button', { name: 'Next image' }).boundingBox()
+      expect(next.y).toBeGreaterThan(pause.y)
+    }
+    await page.screenshot({ path: testInfo.outputPath(`toolbar-${position}.png`) })
+    await page.evaluate(() => window.wallpaperPropertyListener.applyUserProperties({ toolbarmargin: { value: 256 } }))
+    await page.setViewportSize({ width: 390, height: 300 })
+    const small = await controls.boundingBox()
+    expect(small.x).toBeGreaterThanOrEqual(8)
+    expect(small.y).toBeGreaterThanOrEqual(8)
+    expect(small.x + small.width).toBeLessThanOrEqual(382)
+    expect(small.y + small.height).toBeLessThanOrEqual(292)
+    await controls.getByRole('button', { name: 'Open settings' }).click()
+    await expect(dialog(page)).toBeVisible()
+    await expect(dialog(page).getByRole('spinbutton', { name: 'Edge clearance (pixels)' })).toHaveValue('256')
+    await page.keyboard.press('Escape')
+    await expect(controls.getByRole('button', { name: 'Open settings' })).toBeFocused()
+  }
   expect(errors).toEqual([])
 })
 

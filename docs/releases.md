@@ -1,5 +1,9 @@
 # Releases and versioning
 
+## Unreleased
+
+Toolbar placement now defaults to top center, with top/bottom/left/right anchors and configurable edge clearance in native properties and the settings overlay. Saved placement follows existing override/reset rules without migrating v1 preferences. Small viewports clamp rendered clearance and side anchors use vertical controls. Offline browser verification is recorded in [verification](verification.md); native taskbar/icon, DPI and multi-monitor acceptance remains pending. No application-version bump yet.
+
 ## 1.0.0 — 2026-11-16
 
 Initial offline slideshow foundation: local image/folder sources, natural ordering and shuffle/history, configurable fade/slide/instant transitions, Fill/Fit with blurred/solid backgrounds, bounded sequential preparation, WebGL/Canvas2D rendering, and accessible controls with saved appearance/playback settings.

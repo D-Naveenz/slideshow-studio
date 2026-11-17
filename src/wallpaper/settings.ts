@@ -13,12 +13,15 @@ export interface Settings {
   backgroundcolor: string
   blur: number
   controls: boolean
+  toolbarposition: 'top' | 'bottom' | 'left' | 'right'
+  toolbarmargin: number
 }
 
 export const defaults: Readonly<Settings> = Object.freeze({
   source: 'samples', imagefile: '', imagedirectory: '', holdseconds: 30,
   transition: 'fade', transitionseconds: 1, shuffle: false, fit: 'fill',
   background: 'blur', backgroundcolor: '#000000', blur: 24, controls: true,
+  toolbarposition: 'top', toolbarmargin: 24,
 })
 
 interface PropertyDefinition {
@@ -51,6 +54,11 @@ export const definitions: Record<keyof Settings, PropertyDefinition> = {
   backgroundcolor: { type: 'color', text: 'Background color' },
   blur: { type: 'slider', text: 'Blur strength (pixels)', min: 0, max: 80, fraction: false, condition: 'fit.value == "fit" && background.value == "blur"' },
   controls: { type: 'bool', text: 'Enable navigation and settings overlay' },
+  toolbarposition: { type: 'combo', text: 'Toolbar position', options: [
+    { label: 'Top center', value: 'top' }, { label: 'Bottom center', value: 'bottom' },
+    { label: 'Left center', value: 'left' }, { label: 'Right center', value: 'right' },
+  ] },
+  toolbarmargin: { type: 'slider', text: 'Toolbar edge clearance (pixels; increase to clear taskbar)', min: 8, max: 256, fraction: false },
 }
 
 function normalize(key: keyof Settings, value: unknown): Settings[keyof Settings] | undefined {
