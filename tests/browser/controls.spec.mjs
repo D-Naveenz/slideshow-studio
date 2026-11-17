@@ -90,7 +90,12 @@ test('compact pagination card shows collection position without a filename', asy
   expect(layout.padding).toEqual(['8px', '8px', '8px', '8px'])
   expect(layout.blur).toContain('blur(20px)')
   expect(layout.blur).toMatch(/saturate\((?:1\.25|125%)\)/)
-  expect(layout.width).toBeLessThanOrEqual(200)
+  expect(layout.width).toBeLessThanOrEqual(320)
+  await expect(controls.getByRole('button', { name: 'Go to image 1', exact: true })).toHaveAttribute('aria-current', 'page')
+  await controls.getByRole('button', { name: 'Go to image 3', exact: true }).click()
+  await expect(page.locator('main')).toHaveAttribute('data-current', '2b.JPG')
+  await controls.getByRole('button', { name: 'Go to image 1', exact: true }).press('Enter')
+  await expect(counter).toHaveText('1/4')
   await controls.getByRole('button', { name: 'Next image' }).click()
   await expect(counter).toHaveText('2/4')
   await controls.getByRole('button', { name: 'Next image' }).click()
@@ -124,6 +129,40 @@ test('compact pagination card shows collection position without a filename', asy
   await expect(counter).toHaveText('2/3')
   await page.getByLabel('Choose image', { exact: true }).setInputFiles({ name: 'single.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="50" height="50"><rect width="50" height="50" fill="green"/></svg>') })
   await expect(counter).toHaveText('1/1')
+  expect(errors).toEqual([])
+})
+
+test('numbered pagination bounds large collections and follows direct jumps and shuffle', async ({ page }) => {
+  const errors = await boot(page, { preview: true })
+  await page.evaluate(() => {
+    const files = new DataTransfer()
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"><rect width="20" height="20" fill="green"/></svg>'
+    for (let index = 12; index > 0; index--) files.items.add(new File([svg], `${index}.svg`, { type: 'image/svg+xml' }))
+    const input = document.querySelector('input[webkitdirectory]')
+    input.files = files.files; input.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  const controls = toolbar(page)
+  const active = controls.locator('button[aria-current="page"]')
+  await expect(active).toHaveText('1')
+  await expect(controls.getByRole('button', { name: /^Go to image/ })).toHaveCount(6)
+  await expect(controls.getByRole('button', { name: /^Go to image/ })).toHaveText(['1', '2', '3', '10', '11', '12'])
+  await controls.getByRole('button', { name: 'Go to image 12', exact: true }).click()
+  await expect(page.locator('main')).toHaveAttribute('data-current', '12.svg')
+  await expect(active).toHaveText('12')
+  await controls.getByRole('button', { name: 'Previous image' }).click()
+  await expect(active).toHaveText('1')
+  await controls.getByRole('button', { name: 'Go to image 2', exact: true }).click()
+  await expect(active).toHaveText('2')
+  for (let index = 3; index <= 6; index++) {
+    await controls.getByRole('button', { name: 'Next image' }).click()
+    await expect(active).toHaveText(String(index))
+  }
+  await expect(controls.locator('[data-slot="pagination-ellipsis"]')).toHaveCount(2)
+  await expect(controls.getByRole('button', { name: /^Go to image/ })).toHaveCount(5)
+  await page.evaluate(() => window.wallpaperPropertyListener.applyUserProperties({ shuffle: { value: true } }))
+  await controls.getByRole('button', { name: 'Go to image 12', exact: true }).press('Enter')
+  await expect(active).toHaveText('12')
+  await expect(page.locator('main')).toHaveAttribute('data-current', '12.svg')
   expect(errors).toEqual([])
 })
 
@@ -166,7 +205,7 @@ test('controls hide after three seconds, stay for hover/focus/dialog, and return
   await expect(controls).toHaveAttribute('data-visible', 'false')
   // Hidden controls remain in the tab order and reveal immediately on keyboard focus.
   await page.keyboard.press('Tab')
-  await expect(controls.getByRole('button', { name: 'Pause playback' })).toBeFocused()
+  await expect(controls.getByRole('button', { name: 'Go to image 1', exact: true })).toBeFocused()
   await expect(controls).toHaveAttribute('data-visible', 'true')
   await page.evaluate(() => document.activeElement.blur()); await page.clock.runFor(3100)
   await expect(controls).toHaveAttribute('data-visible', 'false')
@@ -272,14 +311,33 @@ test('all anchors clear viewport edges and keep actions reachable after resize',
     await page.evaluate(position => window.wallpaperPropertyListener.applyUserProperties({ toolbarposition: { value: position }, toolbarmargin: { value: 80 } }), position)
     await page.mouse.move(5, 5)
     const controls = toolbar(page)
+    const divider = controls.locator('.toolbar-divider [data-slot="separator"]')
+    await expect(divider).toHaveAttribute('data-orientation', position === 'left' || position === 'right' ? 'horizontal' : 'vertical')
+    const dividerBox = await divider.boundingBox()
+    expect(dividerBox.width).toBeGreaterThan(0)
+    expect(dividerBox.height).toBeGreaterThan(0)
     const box = await controls.boundingBox()
     const edge = position === 'top' ? box.y : position === 'bottom' ? 720 - box.y - box.height : position === 'left' ? box.x : 1280 - box.x - box.width
     expect(edge).toBeCloseTo(80, 0)
     if (position === 'left' || position === 'right') {
       const pause = await controls.getByRole('button', { name: 'Pause playback' }).boundingBox()
       const next = await controls.getByRole('button', { name: 'Next image' }).boundingBox()
-      expect(next.y).toBeGreaterThan(pause.y)
+      expect(pause.y).toBeGreaterThan(next.y)
     }
+    // Stock Buttons translate by 1px while held; this must not create scrollbars.
+    const pause = controls.getByRole('button', { name: /^(Pause|Resume) playback$/ })
+    await pause.hover()
+    await page.mouse.down()
+    await expect.poll(() => pause.evaluate(element => getComputedStyle(element).translate)).toBe('0px 1px')
+    await expect.poll(() => controls.locator('[data-slot="card-content"]').evaluate(element =>
+      element.scrollHeight <= element.clientHeight && element.scrollWidth <= element.clientWidth)).toBe(true)
+    await page.mouse.up()
+    await pause.focus()
+    await page.keyboard.down('Space')
+    await expect.poll(() => pause.evaluate(element => getComputedStyle(element).translate)).toBe('0px 1px')
+    await expect.poll(() => controls.locator('[data-slot="card-content"]').evaluate(element =>
+      element.scrollHeight <= element.clientHeight && element.scrollWidth <= element.clientWidth)).toBe(true)
+    await page.keyboard.up('Space')
     await page.screenshot({ path: testInfo.outputPath(`toolbar-${position}.png`) })
     await page.evaluate(() => window.wallpaperPropertyListener.applyUserProperties({ toolbarmargin: { value: 256 } }))
     await page.setViewportSize({ width: 390, height: 300 })
@@ -336,8 +394,9 @@ test('portrait settings fit the viewport and allow scrolling to reset and close'
 
 for (const theme of ['dark', 'light']) test(`${theme} theme supports switches, sliders, focus and short dialog scrolling`, async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 500 })
+  await page.emulateMedia({ colorScheme: theme })
   const errors = await boot(page)
-  await page.evaluate(theme => document.documentElement.classList.toggle('dark', theme === 'dark'), theme)
+  await expect(page.locator('html')).toHaveCSS('color-scheme', theme)
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await open(page)
   const shuffle = dialog(page).getByRole('switch', { name: 'Shuffle images' })
@@ -372,6 +431,61 @@ for (const theme of ['dark', 'light']) test(`${theme} theme supports switches, s
   await expect(close).toBeInViewport()
   await close.click()
   await expect(toolbar(page).getByRole('button', { name: 'Open settings' })).toBeFocused()
+  expect(errors).toEqual([])
+})
+
+test('the whole application follows live OS theme changes while panels stay solid', async ({ page }, testInfo) => {
+  await page.emulateMedia({ colorScheme: 'light' })
+  const errors = await boot(page, { preview: true })
+  const controls = toolbar(page)
+  await controls.getByRole('button', { name: 'Pause playback' }).click()
+  const colors = []
+  for (const theme of ['light', 'dark', 'light']) {
+    await page.emulateMedia({ colorScheme: theme })
+    await expect(page.locator('html')).toHaveCSS('color-scheme', theme)
+    await page.mouse.move(10, 10)
+    await controls.screenshot({ path: testInfo.outputPath(`toolbar-${theme}.png`), animations: 'disabled' })
+    await open(page)
+    const hold = dialog(page).getByRole('textbox', { name: 'Hold time (seconds)' })
+    if (!colors.length) await hold.fill('47')
+    await expect(hold).toHaveValue('47')
+    const surfaces = await page.evaluate(() => {
+      const styles = selector => {
+        const css = getComputedStyle(document.querySelector(selector))
+        return { color: css.color, background: css.backgroundColor, filter: css.backdropFilter, scheme: css.colorScheme }
+      }
+      return { body: styles('body'), dialog: styles('.settings-panel'), preview: styles('.preview-tools'), input: styles('.settings-panel input') }
+    })
+    for (const surface of [surfaces.dialog, surfaces.preview]) {
+      expect(surface.filter).toBe('none')
+      expect(surface.background).toMatch(/^rgb\(/)
+      expect(surface.scheme).toBe(theme)
+    }
+    colors.push(surfaces)
+    await page.screenshot({ path: testInfo.outputPath(`application-${theme}.png`), animations: 'disabled' })
+    if (colors.length === 1) {
+      // Also switch with a dialog open: neither modal state nor field edits should reset.
+      await page.emulateMedia({ colorScheme: 'dark' })
+      await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark')
+      await expect(dialog(page)).toBeVisible()
+      await expect(hold).toHaveValue('47')
+    }
+    await page.keyboard.press('Escape')
+    await expect(dialog(page)).toHaveCount(0)
+    await expect(page.locator('main')).toHaveAttribute('data-paused', 'true')
+  }
+  for (const surface of ['body', 'dialog', 'preview', 'input']) {
+    expect(colors[0][surface].color).not.toBe(colors[1][surface].color)
+    expect(colors[0][surface]).toEqual(colors[2][surface])
+  }
+  await page.evaluate(() => window.wallpaperPropertyListener.applyUserProperties({ source: { value: 'image' }, imagefile: { value: '' } }))
+  await expect(page.locator('main')).toHaveAttribute('data-phase', 'empty')
+  for (const theme of ['dark', 'light']) {
+    await page.emulateMedia({ colorScheme: theme })
+    await expect(page.locator('html')).toHaveCSS('color-scheme', theme)
+    const background = await page.locator('body').evaluate(element => getComputedStyle(element).backgroundColor)
+    await expect(page.locator('.playback-message')).toHaveCSS('background-color', background)
+  }
   expect(errors).toEqual([])
 })
 

@@ -113,6 +113,7 @@ test('folder input filters non-images, accepts reselection, and fits a portrait 
 
 test('ReUI developer controls remain available without the overlay and edit host numeric values', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 600 })
+  await page.emulateMedia({ colorScheme: 'dark' })
   const diagnostics = await openPreview(page)
   await page.evaluate(() => window.wallpaperPropertyListener.applyUserProperties({ controls: { value: false } }))
   const preview = page.getByRole('complementary', { name: 'Browser preview tools' })
@@ -136,7 +137,8 @@ test('ReUI developer controls remain available without the overlay and edit host
   expect(box.x + box.width).toBeLessThanOrEqual(390)
   expect(box.y + box.height).toBeLessThanOrEqual(600)
   await page.screenshot({ path: testInfo.outputPath('developer-dark.png'), animations: 'disabled' })
-  await page.evaluate(() => document.documentElement.classList.remove('dark'))
+  await page.emulateMedia({ colorScheme: 'light' })
+  await expect(page.locator('html')).toHaveCSS('color-scheme', 'light')
   await page.screenshot({ path: testInfo.outputPath('developer-light.png'), animations: 'disabled' })
   await diagnostics.check()
 })

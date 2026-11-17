@@ -95,6 +95,34 @@ test('shuffle completes every cycle without duplicates or immediate boundary rep
   const last = order.current; order.commit(order.previous!, -1); assert.equal(order.next(), last)
 })
 
+test('direct selection cancels unrelated prefetch, stays bounded and preserves visit history', async () => {
+  for (const shuffle of [false, true]) {
+    const h = harness(undefined, { shuffle })
+    h.jobs.shift()!.resolve(); await flush()
+    const initial = h.playback.getSnapshot().current!.id
+    const prefetch = h.jobs.shift()!
+    const target = h.source.snapshot.images.find(entry => entry.id !== initial && entry.id !== prefetch.entry.id)!.id
+    h.playback.select(target)
+    h.playback.select(prefetch.entry.id) // An in-flight navigation cannot be replaced by another click.
+    assert.equal(prefetch.signal.aborted, true)
+    prefetch.resolve(); await flush()
+    assert.ok(h.released.includes(`${prefetch.entry.id}:0`))
+    const selected = h.jobs.shift()!
+    assert.equal(selected.entry.id, target)
+    selected.resolve(); await flush()
+    assert.equal(h.playback.getSnapshot().current?.id, target)
+    h.playback.select('missing.jpg'); h.playback.select(target)
+    assert.equal(h.playback.getSnapshot().navigating, false)
+    h.playback.previous()
+    h.jobs.shift()?.resolve(); await flush()
+    assert.equal(h.playback.getSnapshot().current?.id, initial)
+    assert.equal(h.stats().maxActive, 1)
+    h.playback.dispose()
+    h.jobs.forEach(job => job.resolve()); await flush()
+    assert.equal(h.stats().alive, 0)
+  }
+})
+
 test('hold clock preserves remaining time through suspension and manual restart while paused', () => {
   const clock = new HoldClock(); clock.start(0, 1000); clock.pause(250)
   assert.equal(clock.remaining(20_000), 750)

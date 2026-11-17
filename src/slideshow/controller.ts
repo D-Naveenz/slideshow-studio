@@ -246,6 +246,14 @@ export class PlaybackController {
   }
   next = () => this.navigate(1)
   previous = () => this.navigate(-1)
+  select = (id: string) => {
+    const target = this.usable(id)
+    if (this.disposed || !this.current || this.intent || !target || target.id === this.current.entry.id) return
+    // Use the same bounded worker and history as next/previous; never decode in the UI.
+    this.intent = { direction: 1, target: target.id, restart: true }; this.clearTimer()
+    if (this.loadingKey && this.loadingKey !== resourceKey(target, this.limits)) this.invalidate()
+    this.publish(); void this.pump()
+  }
   togglePause = () => { this.userPaused = !this.userPaused; this.pauseChanged(); this.publish() }
   suspend(paused: boolean) { this.suspended = paused; this.pauseChanged(); this.publish() }
   resize() {

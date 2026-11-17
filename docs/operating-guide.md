@@ -41,7 +41,7 @@ Fill crops to cover; Fit preserves the image over a solid color or blurred dupli
 
 Move the pointer or Tab to reveal the toolbar. It hides after three seconds unless hovered, focused, or settings are open. Native **Enable navigation and settings overlay** disables controls and shortcuts together. Pending/unavailable navigation is disabled.
 
-The compact pale green-tinted acrylic toolbar shows Previous, current/total (for example **3/10**), Pause/Resume, Next and Settings. It does not show a filename. The counter is the image's natural-order position in the selected collection, including when shuffle is enabled; it is not the number of images visited. It shows 0/0 for an empty collection.
+The compact glass toolbar shows Previous, numbered image buttons, Next, Pause/Resume and Settings. Click a number to jump to its image; larger collections show ellipses between the visible numbers. Numbers follow the collection's natural filename order, including during shuffle. Previous/Next follow visit history, so Previous returns to the image shown before a jump. The active number is highlighted; current/total is also announced for screen readers (0/0 for an empty collection). No filename is displayed.
 
 | Shortcut | Action |
 | --- | --- |
@@ -54,7 +54,7 @@ Fields and buttons retain normal key behavior. Host keyboard forwarding remains 
 
 The toolbar defaults to **Top center**. Under **Controls**, choose Top/Bottom/Left/Right center and **Edge clearance (pixels)** (8–256; default 24). Side placements use a vertical toolbar. Increase clearance for bottom placement to clear the taskbar, or choose an edge away from desktop icons. These settings are also available in Wallpaper Engine’s native properties if the overlay is obstructed. Small windows reduce rendered clearance as needed without changing the saved value. Settings remain centered and scroll independently.
 
-The settings heading and close button stay visible while scrolling through Playback, Appearance and Controls. Dropdowns retain native keyboard behavior; Shuffle uses a switch and Blur strength uses an accessible slider. Hold time, duration and edge clearance have compact decrement/increment number fields; values can also be typed or changed with arrow keys. Duration is disabled for Instant transitions. The interface defaults to the green dark theme; no theme selector is exposed.
+The settings heading and close button stay visible while scrolling through Playback, Appearance and Controls. Dropdowns retain native keyboard behavior; Shuffle uses a switch and Blur strength uses an accessible slider. Hold time, duration and edge clearance have compact decrement/increment number fields; values can also be typed or changed with arrow keys. Duration is disabled for Instant transitions. The whole interface follows the OS light/dark preference, including live changes. The toolbar uses light frosted glass or dark acrylic with neutral outlined action buttons, separated from pagination by a divider. Settings and developer panels keep solid backgrounds in both themes; no theme selector is exposed.
 
 The original v1.0.0 bottom toolbar could overlap the taskbar. Configurable placement addresses that limitation, but actual desktop taskbar/icon clearance still needs native acceptance; browser containment alone does not establish it.
 

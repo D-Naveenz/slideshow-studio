@@ -7,7 +7,10 @@ import { createWallpaperRenderer } from './slideshow/resilient-renderer.ts'
 import { PlaybackController } from './slideshow/controller.ts'
 
 const query = new URLSearchParams(window.location.search)
-document.documentElement.classList.add('dark')
+const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
+const syncTheme = () => document.documentElement.classList.toggle('dark', systemTheme.matches)
+syncTheme()
+systemTheme.addEventListener('change', syncTheme)
 const runtime = new WallpaperRuntime(import.meta.env.DEV || query.get('preview') === '1')
 runtime.connect(window.wallpaperBridge)
 const root = createRoot(document.getElementById('root')!)
@@ -33,6 +36,7 @@ void start().catch(() => {
 })
 import.meta.hot?.dispose(() => {
   alive = false
+  systemTheme.removeEventListener('change', syncTheme)
   document.removeEventListener('visibilitychange', visibility); window.removeEventListener('resize', resize)
   clearTimeout(resizeTimer); playback?.dispose(); runtime.dispose(); root.unmount()
 })
