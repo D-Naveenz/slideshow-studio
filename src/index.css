@@ -47,6 +47,10 @@
   --liquid-tint: transparent;
   --liquid-foreground: #323232;
   --liquid-sticker-shadow: rgb(0 0 0 / 16%);
+  --liquid-sheen: rgb(255 255 255 / 50%);
+  --liquid-bevel: rgb(255 255 255 / 50%);
+  --liquid-inner: rgb(255 255 255 / 20%);
+  --liquid-rim: rgb(255 255 255 / 50%);
   --liquid-sticker-highlight: rgb(255 255 255 / 90%);
   --liquid-hover: rgb(57 134 86 / 12%);
   --liquid-hover-border: rgb(55 119 78 / 52%);
@@ -54,6 +58,7 @@
   --liquid-inset: rgb(30 67 43 / 14%);
   --liquid-pressed: rgb(30 67 43 / 24%);
   --liquid-focus: #245b35;
+  --liquid-divider: rgb(36 59 45 / 42%);
   --acrylic-tint: rgb(248 250 249 / 64%);
   --acrylic-edge: rgb(255 255 255 / 70%);
   --acrylic-shadow: rgb(12 24 17 / 20%);
@@ -78,9 +83,13 @@
   --border: #4a5c51;
   --input: #718178;
   --ring: #b4c5b9;
-  --liquid-tint: rgb(9 17 12 / 28%);
+  --liquid-tint: rgb(9 17 12 / 36%);
   --liquid-foreground: #eff6f1;
   --liquid-sticker-shadow: rgb(0 0 0 / 55%);
+  --liquid-sheen: rgb(255 255 255 / 16%);
+  --liquid-bevel: rgb(255 255 255 / 24%);
+  --liquid-inner: rgb(255 255 255 / 9%);
+  --liquid-rim: rgb(255 255 255 / 26%);
   --liquid-sticker-highlight: rgb(0 5 2 / 72%);
   --liquid-hover: rgb(100 207 140 / 16%);
   --liquid-hover-border: rgb(135 230 166 / 60%);
@@ -88,6 +97,7 @@
   --liquid-inset: rgb(0 14 6 / 32%);
   --liquid-pressed: rgb(0 14 6 / 50%);
   --liquid-focus: #bbf3cd;
+  --liquid-divider: rgb(220 240 225 / 60%);
   --acrylic-tint: rgb(20 29 24 / 72%);
   --acrylic-edge: rgb(224 240 229 / 24%);
   --acrylic-shadow: rgb(0 5 2 / 44%);

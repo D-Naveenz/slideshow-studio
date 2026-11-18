@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { resolve } from 'node:path'
 import { readFileSync } from 'node:fs'
+import { pngPixels } from './png-pixels.mjs'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const { version } = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'))
@@ -84,11 +85,10 @@ test('compact pagination card shows collection position without a filename', asy
   await expect(controls.getByText('Now showing', { exact: true })).toHaveCount(0)
   const layout = await controls.evaluate(element => {
     const css = getComputedStyle(element)
-    const glass = getComputedStyle(element, '::before')
-    return { padding: [css.paddingTop, css.paddingRight, css.paddingBottom, css.paddingLeft], blur: glass.backdropFilter, width: element.getBoundingClientRect().width }
+    return { padding: [css.paddingTop, css.paddingRight, css.paddingBottom, css.paddingLeft], blur: css.backdropFilter, width: element.getBoundingClientRect().width }
   })
-  expect(layout.padding).toEqual(['12px', '16px', '12px', '16px'])
-  expect(layout.blur).toBe('blur(1.75px)')
+  expect(layout.padding).toEqual(['8px', '12px', '8px', '12px'])
+  expect(layout.blur).toBe('blur(4px)')
   expect(layout.width).toBeLessThanOrEqual(400)
   await expect(controls.getByRole('button', { name: 'Go to image 1', exact: true })).toHaveAttribute('aria-current', 'page')
   await controls.getByRole('button', { name: 'Go to image 3', exact: true }).click()
@@ -323,17 +323,17 @@ test('all anchors clear viewport edges and keep actions reachable after resize',
       const next = await controls.getByRole('button', { name: 'Next image' }).boundingBox()
       expect(pause.y).toBeGreaterThan(next.y)
     }
-    // Stock Buttons translate by 1px while held; this must not create scrollbars.
+    // Held controls stay fixed and must not create scrollbars.
     const pause = controls.getByRole('button', { name: /^(Pause|Resume) playback$/ })
     await pause.hover()
     await page.mouse.down()
-    await expect.poll(() => pause.evaluate(element => getComputedStyle(element).translate)).toBe('0px 1px')
+    await expect.poll(() => pause.evaluate(element => getComputedStyle(element).translate)).toBe('none')
     await expect.poll(() => controls.locator('[data-slot="card-content"]').evaluate(element =>
       element.scrollHeight <= element.clientHeight && element.scrollWidth <= element.clientWidth)).toBe(true)
     await page.mouse.up()
     await pause.focus()
     await page.keyboard.down('Space')
-    await expect.poll(() => pause.evaluate(element => getComputedStyle(element).translate)).toBe('0px 1px')
+    await expect.poll(() => pause.evaluate(element => getComputedStyle(element).translate)).toBe('none')
     await expect.poll(() => controls.locator('[data-slot="card-content"]').evaluate(element =>
       element.scrollHeight <= element.clientHeight && element.scrollWidth <= element.clientWidth)).toBe(true)
     await page.keyboard.up('Space')
@@ -499,6 +499,27 @@ test('the whole application follows live OS theme changes with shared acrylic pa
   expect(errors).toEqual([])
 })
 
+for (const theme of ['light', 'dark']) test(`${theme} glass visibly blurs fine backdrop detail`, async ({ page }, testInfo) => {
+  await page.emulateMedia({ colorScheme: theme })
+  const errors = await boot(page)
+  await page.evaluate(() => {
+    const backdrop = document.createElement('div')
+    backdrop.style.cssText = 'position:fixed;inset:0;z-index:1;pointer-events:none;background:repeating-linear-gradient(90deg,white 0px 2px,black 2px 4px)'
+    document.body.append(backdrop)
+    document.querySelector('.wallpaper-toolbar [data-slot="card-content"]').style.opacity = '0'
+  })
+  const box = await toolbar(page).boundingBox()
+  const pixels = pngPixels(await page.screenshot({ path: testInfo.outputPath(`actual-blur-${theme}.png`) }))
+  const x = Math.round(box.x + box.width / 2), y = Math.round(box.y + box.height / 2)
+  const range = row => {
+    const values = Array.from({ length: 32 }, (_, index) => pixels.pixel(x - 16 + index, row)[0])
+    return Math.max(...values) - Math.min(...values)
+  }
+  expect(range(Math.floor(box.y - 10))).toBeGreaterThan(220)
+  expect(range(y)).toBeLessThan(35)
+  expect(errors).toEqual([])
+})
+
 for (const theme of ['light', 'dark']) test(`${theme} static liquid pill keeps markings clear, hover illuminated and toggles depressed`, async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: theme })
   const errors = await boot(page)
@@ -518,8 +539,9 @@ for (const theme of ['light', 'dark']) test(`${theme} static liquid pill keeps m
     const face = getComputedStyle(element, '::before')
     const rim = getComputedStyle(element, '::after')
     const sheen = getComputedStyle(element.querySelector('.toolbar-glass-sheen'))
-    return [face.background, face.backdropFilter, face.boxShadow, rim.background, rim.getPropertyValue('--liquid-rim-angle'), sheen.background, sheen.transform, sheen.opacity, getComputedStyle(element).transitionDuration]
+    return [face.background, getComputedStyle(element).backdropFilter, face.boxShadow, rim.background, rim.getPropertyValue('--liquid-rim-angle'), sheen.background, sheen.transform, sheen.opacity, getComputedStyle(element).transitionDuration]
   })
+  await expect(controls.locator('.toolbar-divider [data-slot=separator]')).toHaveCSS('background-color', theme === 'dark' ? 'rgba(220, 240, 225, 0.6)' : 'rgba(36, 59, 45, 0.42)')
   const staticSurface = await surfaceState()
   expect(staticSurface.at(-1)).toBe('0s')
   for (const name of ['Previous image', 'Next image', 'Pause playback', 'Open settings']) {
@@ -532,7 +554,8 @@ for (const theme of ['light', 'dark']) test(`${theme} static liquid pill keeps m
     await target.evaluate(element => element.getAnimations({ subtree: true }).forEach(animation => animation.finish()))
     states[name] = await target.evaluate(element => {
       const css = getComputedStyle(element)
-      return { background: css.backgroundColor, border: css.borderTopColor, width: css.borderTopWidth, shadow: css.boxShadow, translation: css.translate, sticker: css.textShadow,
+      const rect = element.getBoundingClientRect()
+      return { position: [rect.x, rect.y], background: css.backgroundColor, border: css.borderTopColor, width: css.borderTopWidth, shadow: css.boxShadow, translation: css.translate, sticker: css.textShadow,
         decorations: ['::before', '::after'].map(pseudo => getComputedStyle(element, pseudo).content) }
     })
     expect(await surfaceState()).toEqual(staticSurface)
@@ -555,7 +578,8 @@ for (const theme of ['light', 'dark']) test(`${theme} static liquid pill keeps m
   expect(states.hover.border).not.toBe(states.rest.border)
   expect(states.hover.shadow).not.toBe('none')
   expect(states.rest.sticker).not.toBe('none')
-  expect(states.selected.translation).toBe('0px 1px')
+  for (const name of ['hover', 'pressed', 'selected', 'selected-hover', 'selected-pressed']) expect(states[name].position).toEqual(states.rest.position)
+  expect(states.selected.translation).toBe('none')
   expect(states.selected.shadow).toContain('inset')
   expect(states.pressed.shadow).toContain('inset')
   expect(states.selected.background).not.toBe(states.rest.background)
