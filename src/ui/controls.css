@@ -1,148 +1,124 @@
+@property --liquid-rim-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: -75deg;
+}
+@property --liquid-sheen-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: -45deg;
+}
 .toolbar-placement {
-  position: fixed;
-  inset: 0;
-  z-index: 10;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  pointer-events: none;
-  /* A validated user preference needs a dynamic CSS value; clamping never rewrites storage. */
-  padding-block: min(var(--toolbar-margin), max(8px, calc((100vh - 64px) / 2)));
-  padding-inline: min(
-    var(--toolbar-margin),
-    max(8px, calc((100vw - 64px) / 2))
-  );
+  position: fixed; inset: 0; z-index: 10; display: flex;
+  align-items: flex-start; justify-content: center; pointer-events: none;
+  padding-block: min(var(--toolbar-margin), max(8px, calc((100vh - 76px) / 2)));
+  padding-inline: min(var(--toolbar-margin), max(8px, calc((100vw - 76px) / 2)));
 }
-.toolbar-placement[data-position="bottom"] {
-  align-items: flex-end;
-}
-.toolbar-placement[data-position="left"] {
-  align-items: center;
-  justify-content: flex-start;
-}
-.toolbar-placement[data-position="right"] {
-  align-items: center;
-  justify-content: flex-end;
-}
+.toolbar-placement[data-position="bottom"] { align-items: flex-end; }
+.toolbar-placement[data-position="left"] { align-items: center; justify-content: flex-start; }
+.toolbar-placement[data-position="right"] { align-items: center; justify-content: flex-end; }
 .wallpaper-toolbar {
-  /* The active outlined Button shares the glass palette without changing their geometry. */
-  --background: var(--glass-control);
-  --foreground: var(--glass-foreground);
-  --border: var(--glass-border);
-  position: relative;
-  pointer-events: auto;
-  min-width: 0;
-  max-width: 100%;
-  max-height: 100%;
-  overflow: hidden;
-  scrollbar-gutter: auto;
-  /* User-requested glass depth; keep the installed Card's radius and dimensions. */
-  box-shadow: 0 0 0 1px var(--glass-border),
-    0 2px 3px var(--glass-contact-shadow), 0 8px 24px var(--glass-ambient-shadow);
+  position: relative; isolation: isolate; pointer-events: auto;
+  min-width: 0; max-width: 100%; max-height: 100%;
+  border-radius: 999px; padding: 12px 16px; overflow: visible;
+  color: var(--liquid-foreground); box-shadow: none; scrollbar-gutter: auto;
+}
+/* The supplied button's optical construction, frozen on a noninteractive surface. */
+.wallpaper-toolbar::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 0;
+  background: linear-gradient(-75deg, rgb(255 255 255 / 5%), rgb(255 255 255 / 20%), rgb(255 255 255 / 5%)), var(--liquid-tint);
+  backdrop-filter: blur(clamp(1px, 0.125em, 4px));
+  box-shadow: inset 0 0.125em 0.125em rgb(0 0 0 / 5%),
+    inset 0 -0.125em 0.125em rgb(255 255 255 / 50%),
+    0 0.25em 0.125em -0.125em rgb(0 0 0 / 20%),
+    inset 0 0 0.1em 0.25em rgb(255 255 255 / 20%);
 }
 .wallpaper-toolbar::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  box-shadow: inset 0 1px 0 var(--glass-edge), inset 0 -1px 0 var(--glass-edge-shade),
-    inset 1px 0 0 var(--glass-edge), inset -1px 0 0 var(--glass-edge-shade);
+  content: ""; position: absolute; inset: -0.5px; z-index: 3;
+  border: 1px solid rgb(255 255 255 / 50%); border-radius: inherit; pointer-events: none;
 }
-/* Custom glass materials are scoped here, leaving registry parts and other UI intact.
-   Keep the stock 1px border, geometry and press movement; shadows change discretely. */
-.wallpaper-toolbar [data-slot="button"] {
-  color: var(--glass-foreground);
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  transition-property: color, background-color, border-color, transform, translate;
+.toolbar-glass-sheen {
+  --liquid-sheen-angle: -45deg;
+  position: absolute; inset: 0.5px; z-index: 1; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(var(--liquid-sheen-angle), transparent 0%, rgb(255 255 255 / 50%) 40% 50%, transparent 55%);
+  background-size: 200% 200%; background-position: 0% 50%; background-repeat: no-repeat;
+  mix-blend-mode: screen;
 }
-.wallpaper-toolbar [data-slot="button"]:not(:disabled):hover {
-  background: var(--glass-hover);
-  border-color: var(--glass-hover-border);
-  box-shadow: inset 0 1px 0 var(--glass-edge), inset 0 -1px 0 var(--glass-edge-shade),
-    0 1px 2px var(--glass-contact-shadow);
+.toolbar-glass-shadow {
+  position: absolute; inset: 0; z-index: -1; border-radius: inherit;
+  transform: translate(-2px, 6px); filter: blur(3px); pointer-events: none;
+  box-shadow: 0 3px 6px rgb(0 0 0 / 18%);
 }
-.wallpaper-toolbar [data-slot="button"]:is([aria-current="page"], [aria-pressed="true"], [aria-expanded="true"]) {
-  background: var(--glass-control);
-  border-color: var(--glass-selected-border);
-  box-shadow: inset 0 1px 0 var(--glass-edge), inset 0 -1px 0 var(--glass-edge-shade),
-    0 2px 3px var(--glass-contact-shadow), 0 2px 6px var(--glass-ambient-shadow);
+.toolbar-glass-shadow::after {
+  content: ""; position: absolute; inset: 1px; border-radius: inherit;
+  background: linear-gradient(180deg, rgb(0 0 0 / 20%), rgb(0 0 0 / 10%));
 }
-.wallpaper-toolbar [data-slot="button"]:is([aria-current="page"], [aria-pressed="true"], [aria-expanded="true"]):not(:disabled):hover {
-  background: var(--glass-selected-hover);
+@supports (mask-composite: exclude) {
+  .wallpaper-toolbar::after {
+    --liquid-rim-angle: -75deg;
+    border: 0; padding: 1px;
+    background: conic-gradient(from var(--liquid-rim-angle) at 50% 50%,
+      rgb(0 0 0 / 50%), transparent 5% 40%, rgb(0 0 0 / 50%) 50%, transparent 60% 95%, rgb(0 0 0 / 50%)),
+      linear-gradient(180deg, rgb(255 255 255 / 50%), rgb(255 255 255 / 50%));
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude;
+    box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 50%);
+  }
+  .toolbar-glass-shadow::after {
+    padding: 1px;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); mask-composite: exclude;
+  }
 }
-.wallpaper-toolbar [data-slot="button"]:not(:disabled):is(:hover, :focus, [aria-current="page"], [aria-pressed="true"], [aria-expanded="true"]):active {
-  background: var(--glass-pressed);
-  border-color: var(--glass-pressed-border);
-  box-shadow: inset 0 1px 3px var(--glass-contact-shadow), inset 0 -1px 0 var(--glass-edge);
-}
-.wallpaper-toolbar [data-slot="button"]:focus-visible {
-  outline: 2px solid var(--glass-focus);
-  outline-offset: 2px;
-}
+@supports (backdrop-filter: blur(1px)) { .wallpaper-toolbar { --card: transparent; } }
 .wallpaper-toolbar > [data-slot="card-content"] {
-  /* Keep controls above the decorative layer and scroll only the controls in tiny viewports. */
-  position: relative;
-  min-height: 0;
-  min-width: 0;
-  overflow: auto;
-  /* Reserve paint space for glass contact shadows, focus rings and the 1px active translation.
-     Negative margins retain the pagination example's outer spacing. */
-  padding: 8px;
-  margin: -8px;
+  position: relative; z-index: 2; min-height: 0; min-width: 0;
+  overflow: auto; border-radius: inherit; padding: 8px; margin: -8px;
 }
-@supports (backdrop-filter: blur(16px)) {
-  .wallpaper-toolbar {
-    --card: transparent;
-  }
-  .wallpaper-toolbar::before {
-    @apply backdrop-blur-[16px] backdrop-saturate-125;
-    /* Oversample neighbouring wallpaper, then let the stock Card crop the visible glass.
-       Chromium 142+ filters before this crop; older Chromium retains the basic blur. */
-    content: "";
-    position: absolute;
-    inset: -16px;
-    background: var(--glass-tint);
-    pointer-events: none;
-  }
+.toolbar-items { gap: 4px; }
+.toolbar-placement:is([data-position="left"], [data-position="right"]) .toolbar-items { flex-direction: column; }
+.toolbar-divider { display: flex; align-self: stretch; align-items: center; padding: 6px 8px; }
+.toolbar-divider > [data-orientation="vertical"] { margin-block: 2px; }
+.toolbar-placement:is([data-position="left"], [data-position="right"]) .toolbar-divider { padding: 8px 6px; }
+.wallpaper-toolbar[data-visible="false"] { opacity: 0; pointer-events: none; }
+/* Native button targeting also covers Radix's composed Settings trigger. */
+.wallpaper-toolbar button {
+  color: var(--liquid-foreground); background: transparent; border-color: transparent;
+  box-shadow: none;
+  text-shadow: 0 -0.5px 0.6px var(--liquid-sticker-highlight),
+    0.5px 0 0.6px var(--liquid-sticker-highlight), -0.5px 0 0.6px var(--liquid-sticker-highlight),
+    0 2px 1px var(--liquid-sticker-shadow);
+  transition-property: color, background-color, border-color, translate;
+}
+.wallpaper-toolbar button > svg {
+  filter: drop-shadow(0 0 0.7px var(--liquid-sticker-highlight)) drop-shadow(0 2px 1px var(--liquid-sticker-shadow));
+}
+.wallpaper-toolbar button:not(:disabled):hover {
+  background: var(--liquid-hover); border-color: var(--liquid-hover-border);
+  box-shadow: inset 0 0 6px var(--liquid-glow), 0 0 7px var(--liquid-glow);
+}
+.wallpaper-toolbar button:is([aria-current="page"], [aria-pressed="true"], [aria-expanded="true"]) {
+  background: var(--liquid-inset); border-color: var(--liquid-hover-border); translate: 0 1px;
+  box-shadow: inset 0 2px 4px rgb(0 0 0 / 32%), inset 0 -1px 0 rgb(255 255 255 / 25%);
+}
+.wallpaper-toolbar button:is([aria-current="page"], [aria-pressed="true"], [aria-expanded="true"]):not(:disabled):hover {
+  background: var(--liquid-inset); translate: 0 1px;
+  box-shadow: inset 0 2px 4px rgb(0 0 0 / 32%), inset 0 0 6px var(--liquid-glow);
+}
+.wallpaper-toolbar button:not(:disabled):is(:hover, :focus, [aria-current="page"], [aria-pressed="true"], [aria-expanded="true"]):active {
+  background: var(--liquid-pressed); translate: 0 1px;
+  box-shadow: inset 0 3px 5px rgb(0 0 0 / 38%), inset 0 -1px 0 rgb(255 255 255 / 20%);
+}
+.wallpaper-toolbar button:focus-visible { outline: 2px solid var(--liquid-focus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .wallpaper-toolbar button { transition-property: color, background-color, border-color; }
 }
 @media (forced-colors: active) {
-  .wallpaper-toolbar {
-    background: Canvas;
-    color: CanvasText;
-    outline: 1px solid CanvasText;
-    box-shadow: none;
-  }
-  .wallpaper-toolbar::before, .wallpaper-toolbar::after {
-    display: none;
-  }
-  .wallpaper-toolbar [data-slot="button"] { color: ButtonText; box-shadow: none; }
-  .wallpaper-toolbar [data-slot="button"]:is(:hover, :active, [aria-current="page"], [aria-pressed="true"], [aria-expanded="true"]) {
-    color: HighlightText !important; background: Highlight !important;
+  .wallpaper-toolbar { color: CanvasText; background: Canvas; outline: 1px solid CanvasText; }
+  .wallpaper-toolbar::before, .wallpaper-toolbar::after, .toolbar-glass-sheen, .toolbar-glass-shadow { display: none; }
+  .wallpaper-toolbar button { color: ButtonText; text-shadow: none; box-shadow: none; }
+  .wallpaper-toolbar button > svg { filter: none; }
+  .wallpaper-toolbar button:is(:hover, :active, [aria-current="page"], [aria-pressed="true"], [aria-expanded="true"]) {
+    background: Highlight !important; color: HighlightText !important;
     border-color: Highlight !important; box-shadow: none !important;
   }
-  .wallpaper-toolbar [data-slot="button"]:focus-visible { outline-color: Highlight; }
-}
-.wallpaper-toolbar[data-visible="false"] {
-  opacity: 0;
-  pointer-events: none;
-}
-.toolbar-placement:is([data-position="left"], [data-position="right"])
-  .toolbar-items {
-  flex-direction: column;
-}
-.toolbar-divider {
-  display: flex;
-  align-self: stretch;
-  align-items: center;
-  padding: 4px;
-}
-.toolbar-divider > [data-orientation="vertical"] {
-  margin-block: 2px;
-}
-.toolbar-placement:is([data-position="left"], [data-position="right"])
-  .toolbar-divider {
-  padding-inline: 4px;
+  .wallpaper-toolbar button:focus-visible { outline-color: Highlight; }
 }

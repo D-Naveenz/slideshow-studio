@@ -1,0 +1,21 @@
+/* Default application surfaces are acrylic; the toolbar owns a separate liquid material. */
+:where([data-slot="card"]:not(.wallpaper-toolbar), [data-slot="dialog-content"]) {
+  background-color: var(--card);
+  background-image: url("/materials/acrylic-grain.svg");
+  background-blend-mode: soft-light;
+  box-shadow: inset 0 1px 0 var(--acrylic-edge), 0 0 0 1px var(--acrylic-edge),
+    0 8px 28px var(--acrylic-shadow);
+}
+@supports (backdrop-filter: blur(24px)) {
+  :where([data-slot="card"]:not(.wallpaper-toolbar), [data-slot="dialog-content"]) {
+    background-color: var(--acrylic-tint);
+    backdrop-filter: blur(24px) saturate(140%);
+  }
+}
+[data-slot="dialog-overlay"] { background: rgb(0 0 0 / 12%); backdrop-filter: none; }
+@media (forced-colors: active) {
+  :where([data-slot="card"]:not(.wallpaper-toolbar), [data-slot="dialog-content"]) {
+    color: CanvasText; background: Canvas; backdrop-filter: none; box-shadow: none;
+    outline: 1px solid CanvasText;
+  }
+}

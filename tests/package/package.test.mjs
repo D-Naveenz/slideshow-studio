@@ -78,6 +78,7 @@ test('CSS URLs are local and all four sample files are copied intact, including 
   const css = read('wallpaper.css')
   assert.doesNotMatch(css, /@import\b/)
   for (const match of css.matchAll(/url\(["']?([^"')]+)["']?\)/g)) localAsset(match[1], 'wallpaper.css')
+  assert.deepEqual(readFileSync(resolve(dist, 'materials/acrylic-grain.svg')), readFileSync(resolve(root, 'public/materials/acrylic-grain.svg')))
   const samples = readdirSync(resolve(root, 'public/wallpapers'))
   assert.equal(samples.length, 4)
   assert.deepEqual(readdirSync(resolve(dist, 'wallpapers')).sort(), samples.sort())

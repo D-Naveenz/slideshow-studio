@@ -132,10 +132,10 @@ export function WallpaperControls({
           } as CSSProperties
         }
       >
-        {/* Keep the pagination-card example's p-2 / p-0 spacing; actions are buttons, not page links. */}
+        {/* A static glass surface surrounds semantic navigation and action controls. */}
         <Card
           ref={toolbar}
-          className="wallpaper-toolbar p-2 transition-opacity duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:duration-100"
+          className="wallpaper-toolbar"
           role="group"
           aria-label="Slideshow controls"
           data-visible={visible || open}
@@ -150,6 +150,8 @@ export function WallpaperControls({
           onFocus={reveal}
           onBlur={reveal}
         >
+          <span className="toolbar-glass-shadow" aria-hidden="true" />
+          <span className="toolbar-glass-sheen" aria-hidden="true" />
           <CardContent className="p-0">
             <Pagination aria-label="Slideshow navigation">
               <PaginationContent className="toolbar-items">
@@ -157,7 +159,7 @@ export function WallpaperControls({
                   <Button
                     type="button"
                     variant="ghost"
-                    size="icon"
+                    size="icon-lg"
                     className="rounded-full"
                     aria-label="Previous image"
                     title="Previous image (←)"
@@ -173,7 +175,7 @@ export function WallpaperControls({
                       <Button
                         type="button"
                         variant={page === position ? "outline" : "ghost"}
-                        size={page >= 10000 ? "default" : "icon"}
+                        size={page >= 10000 ? "lg" : "icon-lg"}
                         className="tabular-nums"
                         aria-label={`Go to image ${page}`}
                         aria-current={page === position ? "page" : undefined}
@@ -191,7 +193,7 @@ export function WallpaperControls({
                   <Button
                     type="button"
                     variant="ghost"
-                    size="icon"
+                    size="icon-lg"
                     className="rounded-full"
                     aria-label="Next image"
                     title="Next image (→)"
@@ -210,7 +212,8 @@ export function WallpaperControls({
                   <Button
                     type="button"
                     variant="ghost"
-                    size="icon"
+                    size="icon-lg"
+                    className="rounded-full"
                     aria-pressed={playing.userPaused}
                     aria-label={
                       playing.userPaused ? "Resume playback" : "Pause playback"
@@ -235,7 +238,8 @@ export function WallpaperControls({
                     <Button
                       type="button"
                       variant="ghost"
-                      size="icon"
+                      size="icon-lg"
+                      className="rounded-full"
                       aria-label="Open settings"
                       title="Settings (S)"
                     >

@@ -87,10 +87,9 @@ test('compact pagination card shows collection position without a filename', asy
     const glass = getComputedStyle(element, '::before')
     return { padding: [css.paddingTop, css.paddingRight, css.paddingBottom, css.paddingLeft], blur: glass.backdropFilter, width: element.getBoundingClientRect().width }
   })
-  expect(layout.padding).toEqual(['8px', '8px', '8px', '8px'])
-  expect(layout.blur).toContain('blur(16px)')
-  expect(layout.blur).toMatch(/saturate\((?:1\.25|125%)\)/)
-  expect(layout.width).toBeLessThanOrEqual(320)
+  expect(layout.padding).toEqual(['12px', '16px', '12px', '16px'])
+  expect(layout.blur).toBe('blur(1.75px)')
+  expect(layout.width).toBeLessThanOrEqual(400)
   await expect(controls.getByRole('button', { name: 'Go to image 1', exact: true })).toHaveAttribute('aria-current', 'page')
   await controls.getByRole('button', { name: 'Go to image 3', exact: true }).click()
   await expect(page.locator('main')).toHaveAttribute('data-current', '2b.JPG')
@@ -434,7 +433,7 @@ for (const theme of ['dark', 'light']) test(`${theme} theme supports switches, s
   expect(errors).toEqual([])
 })
 
-test('the whole application follows live OS theme changes while panels stay solid', async ({ page }, testInfo) => {
+test('the whole application follows live OS theme changes with shared acrylic panels', async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: 'light' })
   const errors = await boot(page, { preview: true })
   const controls = toolbar(page)
@@ -463,10 +462,15 @@ test('the whole application follows live OS theme changes while panels stay soli
       return { body: styles('body'), dialog: styles('.settings-panel'), preview: styles('.preview-tools'), input: styles('.settings-panel input') }
     })
     for (const surface of [surfaces.dialog, surfaces.preview]) {
-      expect(surface.filter).toBe('none')
-      expect(surface.background).toMatch(/^rgb\(/)
+      expect(surface.filter).toBe('blur(24px) saturate(1.4)')
+      expect(surface.background).toMatch(/^rgba\(/)
       expect(surface.scheme).toBe(theme)
     }
+    for (const surface of [dialog(page), page.locator('.preview-tools')]) {
+      await expect(surface).toHaveCSS('background-image', /materials\/acrylic-grain\.svg/)
+    }
+    await expect(page.locator('[data-slot="dialog-overlay"]')).toHaveCSS('backdrop-filter', 'none')
+    await expect(page.locator('[data-slot="dialog-overlay"]')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0.12)')
     colors.push(surfaces)
     await page.screenshot({ path: testInfo.outputPath(`application-${theme}.png`), animations: 'disabled' })
     if (colors.length === 1) {
@@ -495,18 +499,43 @@ test('the whole application follows live OS theme changes while panels stay soli
   expect(errors).toEqual([])
 })
 
-for (const theme of ['light', 'dark']) test(`${theme} glass buttons distinguish resting, hovered, pressed and toggled states`, async ({ page }, testInfo) => {
+for (const theme of ['light', 'dark']) test(`${theme} static liquid pill keeps markings clear, hover illuminated and toggles depressed`, async ({ page }, testInfo) => {
   await page.emulateMedia({ colorScheme: theme })
   const errors = await boot(page)
   const controls = toolbar(page)
   const button = controls.getByRole('button', { name: 'Go to image 2', exact: true })
+  const material = await controls.evaluate(element => ({
+    radius: parseFloat(getComputedStyle(element).borderTopLeftRadius), height: element.getBoundingClientRect().height,
+    rim: getComputedStyle(element, '::after').backgroundImage, mask: getComputedStyle(element, '::after').maskComposite,
+    decorative: getComputedStyle(element, '::after').pointerEvents,
+  }))
+  expect(material.radius).toBeGreaterThanOrEqual(material.height / 2)
+  expect(material.rim).toContain('conic-gradient')
+  expect(material.mask).toContain('exclude')
+  expect(material.decorative).toBe('none')
+  await expect(controls.locator('.toolbar-glass-sheen')).toHaveAttribute('aria-hidden', 'true')
+  const surfaceState = () => controls.evaluate(element => {
+    const face = getComputedStyle(element, '::before')
+    const rim = getComputedStyle(element, '::after')
+    const sheen = getComputedStyle(element.querySelector('.toolbar-glass-sheen'))
+    return [face.background, face.backdropFilter, face.boxShadow, rim.background, rim.getPropertyValue('--liquid-rim-angle'), sheen.background, sheen.transform, sheen.opacity, getComputedStyle(element).transitionDuration]
+  })
+  const staticSurface = await surfaceState()
+  expect(staticSurface.at(-1)).toBe('0s')
+  for (const name of ['Previous image', 'Next image', 'Pause playback', 'Open settings']) {
+    const action = controls.getByRole('button', { name, exact: true })
+    const geometry = await action.evaluate(element => ({ width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height, radius: parseFloat(getComputedStyle(element).borderRadius) }))
+    expect(geometry.width).toBe(36); expect(geometry.height).toBe(36); expect(geometry.radius).toBeGreaterThanOrEqual(18)
+  }
   const states = {}
   async function capture(name, target = button) {
-    await target.evaluate(element => element.getAnimations().forEach(animation => animation.finish()))
+    await target.evaluate(element => element.getAnimations({ subtree: true }).forEach(animation => animation.finish()))
     states[name] = await target.evaluate(element => {
       const css = getComputedStyle(element)
-      return { background: css.backgroundColor, border: css.borderTopColor, width: css.borderTopWidth, shadow: css.boxShadow }
+      return { background: css.backgroundColor, border: css.borderTopColor, width: css.borderTopWidth, shadow: css.boxShadow, translation: css.translate, sticker: css.textShadow,
+        decorations: ['::before', '::after'].map(pseudo => getComputedStyle(element, pseudo).content) }
     })
+    expect(await surfaceState()).toEqual(staticSurface)
     const box = await controls.boundingBox()
     await page.screenshot({ path: testInfo.outputPath(`${theme}-${name}.png`), clip: { x: box.x - 16, y: Math.max(0, box.y - 16), width: box.width + 32, height: box.height + 40 }, animations: 'disabled' })
   }
@@ -522,7 +551,17 @@ for (const theme of ['light', 'dark']) test(`${theme} glass buttons distinguish 
   await page.mouse.up()
   expect(states.rest.background).toBe('rgba(0, 0, 0, 0)')
   expect(states.rest.shadow).toBe('none')
-  expect(new Set(['rest', 'hover', 'pressed', 'selected', 'selected-hover'].map(name => states[name].background)).size).toBe(5)
+  expect(states.hover.background).not.toBe(states.rest.background)
+  expect(states.hover.border).not.toBe(states.rest.border)
+  expect(states.hover.shadow).not.toBe('none')
+  expect(states.rest.sticker).not.toBe('none')
+  expect(states.selected.translation).toBe('0px 1px')
+  expect(states.selected.shadow).toContain('inset')
+  expect(states.pressed.shadow).toContain('inset')
+  expect(states.selected.background).not.toBe(states.rest.background)
+  expect(states.pressed.background).not.toBe(states.selected.background)
+  expect(states['selected-hover'].background).toBe(states.selected.background)
+  for (const state of Object.values(states)) expect(state.decorations).toEqual(['none', 'none'])
   expect(states['selected-pressed'].background).toBe(states.pressed.background)
   expect(states.pressed.shadow).not.toBe(states.hover.shadow)
   expect(states.selected.shadow).not.toBe(states.hover.shadow)
@@ -536,6 +575,38 @@ for (const theme of ['light', 'dark']) test(`${theme} glass buttons distinguish 
   expect(states.paused.background).toBe(states.selected.background)
   await resume.press('Space')
   await expect(pause).toHaveAttribute('aria-pressed', 'false')
+  const settings = controls.locator('button[aria-label="Open settings"]')
+  await settings.hover(); await capture('settings-hover', settings)
+  expect(states['settings-hover'].background).toBe(states.hover.background)
+  expect(states['settings-hover'].shadow).not.toBe('none')
+  await settings.click()
+  await expect(dialog(page)).toBeVisible()
+  await capture('settings-open', settings)
+  expect(states['settings-open'].shadow).toContain('inset')
+  await page.keyboard.press('Escape')
+  await expect(dialog(page)).toHaveCount(0)
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect(controls.locator('.toolbar-glass-sheen')).toHaveCSS('transform', 'none')
+  expect(await surfaceState()).toEqual(staticSurface)
+  await expect(controls).toHaveCSS('transition-duration', '0s')
+  for (const backdrop of ['reference', 'bright', 'dark', 'photographic']) {
+    await page.evaluate(backdrop => {
+      document.querySelector('[data-material-probe]')?.remove()
+      if (backdrop === 'photographic') return
+      const layer = document.createElement('div'); layer.dataset.materialProbe = ''
+      Object.assign(layer.style, { position: 'fixed', inset: '0', zIndex: '1', pointerEvents: 'none',
+        background: backdrop === 'reference' ? '#d7d7d7' : backdrop === 'bright' ? '#fff' : '#080c0a' })
+      if (backdrop === 'reference') { layer.style.backgroundImage = 'radial-gradient(rgba(0,0,0,.15) 1px,transparent 1px)'; layer.style.backgroundSize = '30px 30px' }
+      document.body.append(layer)
+    }, backdrop)
+    await page.mouse.move(10, 10); await page.evaluate(() => document.activeElement.blur())
+    await capture(`backdrop-${backdrop}`)
+    if (backdrop === 'reference') {
+      await controls.locator('[data-slot="card-content"]').evaluate(element => { element.style.opacity = '0' })
+      await capture('body-reference')
+      await controls.locator('[data-slot="card-content"]').evaluate(element => { element.style.opacity = '' })
+    }
+  }
   expect(errors).toEqual([])
 })
 
@@ -544,6 +615,9 @@ test('forced colors retains visible keyboard controls and settings scroll access
   await page.emulateMedia({ forcedColors: 'active', reducedMotion: 'reduce' })
   const errors = await boot(page)
   await open(page)
+  expect(await toolbar(page).evaluate(element =>
+    ['::before', '::after'].map(pseudo => getComputedStyle(element, pseudo).display))).toEqual(['none', 'none'])
+  await expect(toolbar(page).locator('.toolbar-glass-sheen')).toHaveCSS('display', 'none')
   await dialog(page).getByRole('textbox', { name: 'Edge clearance (pixels)' }).fill('96')
   await dialog(page).getByRole('button', { name: 'Reset to Wallpaper Engine settings' }).focus()
   await page.screenshot({ path: testInfo.outputPath('settings-forced-colors.png') })

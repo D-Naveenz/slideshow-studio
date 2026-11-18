@@ -24,6 +24,8 @@ export default defineConfig(({ command }) => ({
     wallpaperPackage(version),
   ],
   build: {
+    // Library CSS lives at the package root; public CSS URLs must resolve there too.
+    assetsDir: '',
     target: 'chrome100',
     lib: {
       entry: 'src/main.tsx',

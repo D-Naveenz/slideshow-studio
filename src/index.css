@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./ui/materials.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -43,21 +44,19 @@
   --border: #c5cfc9;
   --input: #a3b3a8;
   --ring: #596f62;
-  --glass-tint: rgb(255 255 255 / 40%);
-  --glass-foreground: #040705;
-  --glass-control: rgb(255 255 255 / 60%);
-  --glass-border: rgb(24 38 30 / 20%);
-  --glass-hover: rgb(255 255 255 / 30%);
-  --glass-selected-hover: rgb(255 255 255 / 76%);
-  --glass-pressed: rgb(24 38 30 / 18%);
-  --glass-hover-border: rgb(255 255 255 / 60%);
-  --glass-selected-border: rgb(255 255 255 / 86%);
-  --glass-pressed-border: rgb(24 38 30 / 34%);
-  --glass-edge: rgb(255 255 255 / 78%);
-  --glass-edge-shade: rgb(24 38 30 / 15%);
-  --glass-contact-shadow: rgb(12 24 17 / 24%);
-  --glass-ambient-shadow: rgb(12 24 17 / 16%);
-  --glass-focus: #263f30;
+  --liquid-tint: transparent;
+  --liquid-foreground: #323232;
+  --liquid-sticker-shadow: rgb(0 0 0 / 16%);
+  --liquid-sticker-highlight: rgb(255 255 255 / 90%);
+  --liquid-hover: rgb(57 134 86 / 12%);
+  --liquid-hover-border: rgb(55 119 78 / 52%);
+  --liquid-glow: rgb(83 174 115 / 24%);
+  --liquid-inset: rgb(30 67 43 / 14%);
+  --liquid-pressed: rgb(30 67 43 / 24%);
+  --liquid-focus: #245b35;
+  --acrylic-tint: rgb(248 250 249 / 64%);
+  --acrylic-edge: rgb(255 255 255 / 70%);
+  --acrylic-shadow: rgb(12 24 17 / 20%);
   --destructive: #b42332;
   font-family: 'Segoe UI', system-ui, sans-serif;
   color: var(--foreground);
@@ -79,21 +78,19 @@
   --border: #4a5c51;
   --input: #718178;
   --ring: #b4c5b9;
-  --glass-tint: rgb(19 28 23 / 50%);
-  --glass-foreground: #eff4f0;
-  --glass-control: rgb(124 145 132 / 34%);
-  --glass-border: rgb(224 240 229 / 22%);
-  --glass-hover: rgb(150 178 160 / 18%);
-  --glass-selected-hover: rgb(150 178 160 / 48%);
-  --glass-pressed: rgb(4 13 8 / 62%);
-  --glass-hover-border: rgb(216 238 224 / 32%);
-  --glass-selected-border: rgb(224 240 229 / 56%);
-  --glass-pressed-border: rgb(216 238 224 / 36%);
-  --glass-edge: rgb(224 240 229 / 28%);
-  --glass-edge-shade: rgb(0 8 3 / 56%);
-  --glass-contact-shadow: rgb(0 5 2 / 58%);
-  --glass-ambient-shadow: rgb(0 5 2 / 38%);
-  --glass-focus: #e0f2e6;
+  --liquid-tint: rgb(9 17 12 / 28%);
+  --liquid-foreground: #eff6f1;
+  --liquid-sticker-shadow: rgb(0 0 0 / 55%);
+  --liquid-sticker-highlight: rgb(0 5 2 / 72%);
+  --liquid-hover: rgb(100 207 140 / 16%);
+  --liquid-hover-border: rgb(135 230 166 / 60%);
+  --liquid-glow: rgb(100 207 140 / 28%);
+  --liquid-inset: rgb(0 14 6 / 32%);
+  --liquid-pressed: rgb(0 14 6 / 50%);
+  --liquid-focus: #bbf3cd;
+  --acrylic-tint: rgb(20 29 24 / 72%);
+  --acrylic-edge: rgb(224 240 229 / 24%);
+  --acrylic-shadow: rgb(0 5 2 / 44%);
   --destructive: #ff8c98;
   color-scheme: dark;
 }
@@ -129,7 +126,7 @@
 }
 
 @media (forced-colors: active) {
-  :where(.settings-panel, .preview-tools) { background: Canvas; color: CanvasText; backdrop-filter: none; }
+
   :where(.settings-scroll, .preview-scroll, .wallpaper-toolbar) { scrollbar-width: auto; scrollbar-color: auto; }
   :where(.settings-scroll, .preview-scroll, .wallpaper-toolbar)::-webkit-scrollbar { width: revert; height: revert; }
   :where(.settings-scroll, .preview-scroll, .wallpaper-toolbar)::-webkit-scrollbar-thumb,
