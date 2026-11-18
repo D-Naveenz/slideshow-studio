@@ -88,7 +88,7 @@ test('compact pagination card shows collection position without a filename', asy
     return { padding: [css.paddingTop, css.paddingRight, css.paddingBottom, css.paddingLeft], blur: glass.backdropFilter, width: element.getBoundingClientRect().width }
   })
   expect(layout.padding).toEqual(['8px', '8px', '8px', '8px'])
-  expect(layout.blur).toContain('blur(20px)')
+  expect(layout.blur).toContain('blur(16px)')
   expect(layout.blur).toMatch(/saturate\((?:1\.25|125%)\)/)
   expect(layout.width).toBeLessThanOrEqual(320)
   await expect(controls.getByRole('button', { name: 'Go to image 1', exact: true })).toHaveAttribute('aria-current', 'page')
@@ -444,6 +444,12 @@ test('the whole application follows live OS theme changes while panels stay soli
     await page.emulateMedia({ colorScheme: theme })
     await expect(page.locator('html')).toHaveCSS('color-scheme', theme)
     await page.mouse.move(10, 10)
+    await page.evaluate(() => document.activeElement.blur())
+    for (const name of ['Open settings']) {
+      const button = controls.getByRole('button', { name, exact: true })
+      await expect(button).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
+      await expect(button).toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)')
+    }
     await controls.screenshot({ path: testInfo.outputPath(`toolbar-${theme}.png`), animations: 'disabled' })
     await open(page)
     const hold = dialog(page).getByRole('textbox', { name: 'Hold time (seconds)' })
@@ -486,6 +492,50 @@ test('the whole application follows live OS theme changes while panels stay soli
     const background = await page.locator('body').evaluate(element => getComputedStyle(element).backgroundColor)
     await expect(page.locator('.playback-message')).toHaveCSS('background-color', background)
   }
+  expect(errors).toEqual([])
+})
+
+for (const theme of ['light', 'dark']) test(`${theme} glass buttons distinguish resting, hovered, pressed and toggled states`, async ({ page }, testInfo) => {
+  await page.emulateMedia({ colorScheme: theme })
+  const errors = await boot(page)
+  const controls = toolbar(page)
+  const button = controls.getByRole('button', { name: 'Go to image 2', exact: true })
+  const states = {}
+  async function capture(name, target = button) {
+    await target.evaluate(element => element.getAnimations().forEach(animation => animation.finish()))
+    states[name] = await target.evaluate(element => {
+      const css = getComputedStyle(element)
+      return { background: css.backgroundColor, border: css.borderTopColor, width: css.borderTopWidth, shadow: css.boxShadow }
+    })
+    const box = await controls.boundingBox()
+    await page.screenshot({ path: testInfo.outputPath(`${theme}-${name}.png`), clip: { x: box.x - 16, y: Math.max(0, box.y - 16), width: box.width + 32, height: box.height + 40 }, animations: 'disabled' })
+  }
+  await capture('rest')
+  await button.hover(); await capture('hover')
+  await page.mouse.down(); await capture('pressed')
+  await page.mouse.up()
+  await expect(button).toHaveAttribute('aria-current', 'page')
+  await page.mouse.move(10, 10); await page.evaluate(() => document.activeElement.blur())
+  await capture('selected')
+  await button.hover(); await capture('selected-hover')
+  await page.mouse.down(); await capture('selected-pressed')
+  await page.mouse.up()
+  expect(states.rest.background).toBe('rgba(0, 0, 0, 0)')
+  expect(states.rest.shadow).toBe('none')
+  expect(new Set(['rest', 'hover', 'pressed', 'selected', 'selected-hover'].map(name => states[name].background)).size).toBe(5)
+  expect(states['selected-pressed'].background).toBe(states.pressed.background)
+  expect(states.pressed.shadow).not.toBe(states.hover.shadow)
+  expect(states.selected.shadow).not.toBe(states.hover.shadow)
+  for (const state of Object.values(states)) expect(state.width).toBe('1px')
+  const pause = controls.getByRole('button', { name: 'Pause playback' })
+  await pause.click()
+  const resume = controls.getByRole('button', { name: 'Resume playback' })
+  await expect(resume).toHaveAttribute('aria-pressed', 'true')
+  await page.mouse.move(10, 10); await page.evaluate(() => document.activeElement.blur())
+  await capture('paused', resume)
+  expect(states.paused.background).toBe(states.selected.background)
+  await resume.press('Space')
+  await expect(pause).toHaveAttribute('aria-pressed', 'false')
   expect(errors).toEqual([])
 })
 

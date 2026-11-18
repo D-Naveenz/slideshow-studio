@@ -209,8 +209,9 @@ export function WallpaperControls({
                 <PaginationItem>
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="icon"
+                    aria-pressed={playing.userPaused}
                     aria-label={
                       playing.userPaused ? "Resume playback" : "Pause playback"
                     }
@@ -233,7 +234,7 @@ export function WallpaperControls({
                   <DialogTrigger asChild>
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="ghost"
                       size="icon"
                       aria-label="Open settings"
                       title="Settings (S)"
